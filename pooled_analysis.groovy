@@ -19,9 +19,13 @@ threads=8 //for BWA
 fastqc = {
     doc "Run FASTQC to generate QC metrics for raw reads"
     output.dir = "fastqc"
-    transform('.fastq.gz')  to('_fastqc.zip') {
-        exec "fastqc -o ${output.dir} $inputs.gz"
+    from('.fastq.gz')  produce(output.prefix.prefix.prefix + '_fastqc.zip') {
+        exec "fastqc -o ${output.dir} $input.gz"
     }
+}
+
+def get_info(filename) {
+    return(filename.split("/")[-1].split("\\.")[0].split("_"))
 }
 
 set_sample_info = {
@@ -35,15 +39,15 @@ set_sample_info = {
 
 align = {
     doc "Extract reads from bam then align with bwa mem algorithm."
-
-    from('fastq.gz', 'fastq.gz') transform('.ref.bam') {
+    output.dir="align"
+    from('fastq.gz', 'fastq.gz') produce(output.prefix.prefix.prefix + '.bam') {
         exec """
             bwa mem -M
             -t $threads
             -R "@RG\\tID:${sample}_${lane}\\tPL:$PLATFORM\\tPU:NA\\tLB:${lane}\\tSM:${sample}"
             $REF $inputs |
             samtools view -bSuh - |
-            samtools sort -T $output.prefix -o $output.bam -
+            samtools sort -T $output.prefix -o $output.prefix -
         """, "bwa"
     }
 }
@@ -148,8 +152,8 @@ index_vcf = {
 }
 
 run {
+    "%.fastq.gz" * [ fastqc ] +
     '%_R*.fastq.gz' * [
-        '%.fastq.gz' * [ fastqc ] +
         set_sample_info +
         align + index_bam +
         realignIntervals + realign + index_bam +

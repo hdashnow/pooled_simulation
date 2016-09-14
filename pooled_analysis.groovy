@@ -28,6 +28,10 @@ def get_info(filename) {
     return(filename.split("/")[-1].split("\\.")[0].split("_"))
 }
 
+index_ref = {
+    exec "bwa index $REF"
+}
+
 set_sample_info = {
 
     doc "Validate and set information about the sample to be processed"
@@ -47,7 +51,7 @@ align = {
             -R "@RG\\tID:${sample}_${lane}\\tPL:$PLATFORM\\tPU:NA\\tLB:${lane}\\tSM:${sample}"
             $REF $inputs |
             samtools view -bSuh - |
-            samtools sort -T $output.prefix -o $output.prefix -
+            samtools sort -T $output.prefix -o $output.bam -
         """, "bwa"
     }
 }
@@ -76,7 +80,7 @@ realignIntervals = {
             -I $input.bam
             --known $GOLD_STANDARD_INDELS
             -o $output.intervals
-            -L $combined_bed
+            -L $EXOME_TARGET
     """, "realign_target_creator"
 }
 
@@ -90,14 +94,14 @@ realign = {
              -I $input.bam
              -targetIntervals $input.intervals
              -o $output.bam
-             -L $combined_bed
+             -L $EXOME_TARGET
     ""","local_realign"
 }
 
 index_bam = {
 
     doc "Create an index for a BAM file"
-
+    output.dir="align"
     transform("bam") to ("bam.bai") {
         exec "samtools index $input.bam","index_bam"
     }
@@ -122,7 +126,7 @@ call_variants = {
                     -stand_call_conf $call_conf -stand_emit_conf $emit_conf
                     -dcov 1600
                     -l INFO
-                    -L $combined_bed
+                    -L $EXOME_TARGET
                     -A AlleleBalance -A Coverage -A FisherStrand
                     -glm BOTH
                     -metrics $output.metrics
@@ -152,6 +156,7 @@ index_vcf = {
 }
 
 run {
+    //index_ref +
     "%.fastq.gz" * [ fastqc ] +
     '%_R*.fastq.gz' * [
         set_sample_info +

@@ -3,80 +3,70 @@
 // Takes mapped exome bams. Simulates pooled exomes.
 
 
-BASE="/vlsci/VR0320/shared/hdashnow/MelbGenomicsPipelineRepo"
+BASE="/group/bioi1/harrietd/pooled-parent/pooled_simulation"
 
 // Tools
 TOOLS="$BASE/tools"
-BEDTOOLS="$TOOLS/bedtools/2.18.2"
-PICARD="$TOOLS/picard/picard-tools-1.65/lib"
-SAMTOOLS="$TOOLS/samtools/0.1.19"
-GATK="$TOOLS/gatk/2.8-1-g932cd3a"
+PICARD="/usr/local/installed/picard/2.0.1/picard.jar"
+GATK="/usr/local/installed/gatk/3.8"
 
 // Ref files
-EXOME_TARGET="$BASE/designs/nextera_rapid_capture_exome_1.2/target_regions.bed"
-EXCLUDE='/vlsci/VR0320/shared/hdashnow/pooled_simulation/CS_excluded.bed'
-REFBASE="$BASE/hg19" 
-REF="$REFBASE/ucsc.hg19.fasta"
+EXOME_TARGET="/group/bioi1/shared/genomes/hg19/exome_targets/nextera_rapid_capture_exome/target_region.bed"
+EXCLUDE="$BASE/CS_excluded.bed"
+REFBASE="/group/bioi1/shared/genomes/hg19/gatk" 
+REF="$REFBASE/gatk.ucsc.hg19.fasta"
 DBSNP="$REFBASE/dbsnp_138.hg19.vcf"
-GOLD_STANDARD_INDELS="$REFBASE/Mills_and_1000G_gold_standard.indels.hg19.vcf"
+GOLD_STANDARD_INDELS="$REFBASE/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf"
 
 combined_bed="combined_target.bed"
 
 // Settings
-//SAMPLES=4
-//DOWNSAMPLE=7 + 1.0/SAMPLES
 CHR='chr22'
 sample_pools = [2, 4, 6, 8, 10]
 set_pool = {
-//    println(inputs)
     branch.num_samples = branch.name.toInteger()
     branch.ploidy = branch.num_samples*2
     def all_inputs = "$inputs".split(" ").toList()
-//    println(branch.num_samples)
+
+    Collections.shuffle(all_inputs)
     branch.pool_samples = all_inputs[0..branch.num_samples-1]
+
+    produce(branch.num_samples + ".txt") {
     exec """
-        echo $num_samples $pool_samples > ${num_samples}.txt
+        echo "pool$num_samples = $pool_samples" > $output.txt
     """
     // need to check if there are enough input sequences to create pool of this size
     forward(pool_samples)
+}
 }
 
 //  -v  Only report those entries in A that have _no overlaps_ with B.
 //        - Similar to "grep -v" (an homage).
 intersect_targets = {
-    produce('combined_target.bed') {
+    produce(combined_bed) {
         exec """
-           $BEDTOOLS/bin/bedtools intersect -v -a $EXOME_TARGET -b $EXCLUDE  > $output.bed
+           bedtools intersect -v -a $EXOME_TARGET -b $EXCLUDE  > $output.bed
         """
-//    forward inputs
+    forward inputs
     }    
 }
 
 //@filter('downsampled')
 downsample_region = {
-    produce(output.prefix+'.downsampled'+branch.num_samples+'.bam') {
+    produce(output.prefix.prefix+'.downsampled.'+branch.num_samples+'.bam') {
         output.dir="align"
         DOWNSAMPLE=7 + 1.0/branch.num_samples
         exec """
-            $SAMTOOLS/samtools view -b -s $DOWNSAMPLE $input.bam > $output 
+            samtools view -b -s $DOWNSAMPLE $input.bam > $output 
         """
     }
 }
-
-//@filter('merged')
-//merge_bams = {
-//    produce(CHR+'.merge.'+branch.num_samples+'.bam') {
-//        exec """
-//            samtools merge -h $input.bam $output.bam $inputs.bam
-//        """
-//    }
-//}
 
 merge_bams = {
     produce('merge.'+branch.num_samples+'.bam') {
         output.dir="align"
         exec """
-            java -Xmx4g -jar $PICARD/MergeSamFiles.jar
+            java -Xmx4g -jar $PICARD MergeSamFiles
                 ${inputs.bam.withFlag('I=')}
                 O=$output.bam
         """
@@ -87,7 +77,7 @@ merge_bams = {
 fix_header = {
     output.dir="align"
     exec """
-        java -Xmx4g -jar $PICARD/AddOrReplaceReadGroups.jar
+        java -Xmx4g -jar $PICARD AddOrReplaceReadGroups
             I=$input.bam
             O=$output.bam
             SORT_ORDER=coordinate
@@ -114,6 +104,7 @@ realignIntervals = {
     """, "realign_target_creator"
 }
 
+@preserve("*.bam")
 realign = {
     doc "Apply GATK local realignment to specified intervals in an alignment"
     output.dir="align"
@@ -137,7 +128,7 @@ index_bam = {
     // nb: fixed in new version of Bpipe
     output.dir=file(input.bam).absoluteFile.parentFile.absolutePath
     transform("bam") to ("bam.bai") {
-        exec "$SAMTOOLS/samtools index $input.bam"
+        exec "samtools index $input.bam"
     }
     forward input
 }
@@ -145,8 +136,6 @@ index_bam = {
 call_variants = {
  
     output.dir="variants"
-     var call_conf:5.0,
-         emit_conf:5.0
  
      transform("bam","bam") to("metrics","vcf") {
          exec """
@@ -155,7 +144,6 @@ call_variants = {
                     -I $input.bam 
                     -nt 4
                     --dbsnp $DBSNP 
-                    -stand_call_conf $call_conf -stand_emit_conf $emit_conf
                     -dcov 1600 
                     -l INFO 
                     -L $combined_bed
@@ -164,7 +152,7 @@ call_variants = {
                     -metrics $output.metrics
                     -o $output.vcf
                     -ploidy $ploidy
-             """
+             """, "unified_genotyper"
      }
  }
 
@@ -187,15 +175,19 @@ index_vcf = {
     }
 }
 
+cleanup = {
+    cleanup "*.bam", "*.vcf", "*.intervals"
+}
+
 run {
-//    intersect_targets +
-//    '%.bam' * [
+    intersect_targets +
     sample_pools * [
         set_pool + "%.bam" * [
             downsample_region
         ] + merge_bams + fix_header +
         realignIntervals + realign + index_bam + 
         call_variants +
-        compress_vcf + index_vcf
+        compress_vcf + index_vcf //+ 
+//        cleanup
     ]
 }

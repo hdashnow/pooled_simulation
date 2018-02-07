@@ -2,40 +2,22 @@
 // Harriet Dashnow 23 March 2015
 // Compares 
 
+load 'pipeline_config.groovy'
 
-BASE="/vlsci/VR0320/shared/hdashnow/MelbGenomicsPipelineRepo"
+// ***Work in progress, doesn't yet run***
 
-// Tools
-TOOLS="$BASE/tools"
-BEDTOOLS="$TOOLS/bedtools/2.18.2"
-PICARD="$TOOLS/picard/picard-tools-1.65/lib"
-SAMTOOLS="$TOOLS/samtools/0.1.19"
-GATK="$TOOLS/gatk/2.8-1-g932cd3a"
+def get_sampleid(filename) {
+    String fileContents = new File(filename).text
+    println(fileContents.split(', '))
+}
 
-// Ref files
-EXOME_TARGET="$BASE/designs/nextera_rapid_capture_exome_1.2/target_regions.bed"
-EXCLUDE='/vlsci/VR0320/shared/hdashnow/pooled_simulation/CS_excluded.bed'
-REFBASE="$BASE/hg19" 
-REF="$REFBASE/ucsc.hg19.fasta"
-DBSNP="$REFBASE/dbsnp_138.hg19.vcf"
-GOLD_STANDARD_INDELS="$REFBASE/Mills_and_1000G_gold_standard.indels.hg19.vcf"
-
-combined_bed="/vlsci/VR0320/shared/hdashnow/pooled_simulation/analysis/combined_target.bed"
-
-pool4 = ["../vcfs/020430101.merge.dedup.realign.recal.vcf", "../vcfs/020430501.merge.dedup.realign.recal.vcf", "../vcfs/020430901.merge.dedup.realign.recal.vcf", "../vcfs/020431001.merge.dedup.realign.recal.vcf"]
-pool6 = ["../vcfs/020430101.merge.dedup.realign.recal.vcf", "../vcfs/020430501.merge.dedup.realign.recal.vcf", "../vcfs/020430901.merge.dedup.realign.recal.vcf", "../vcfs/020431001.merge.dedup.realign.recal.vcf", "../vcfs/020431101.merge.dedup.realign.recal.vcf", "../vcfs/020431201.merge.dedup.realign.recal.vcf"]
-pool8 = ["../vcfs/020430101.merge.dedup.realign.recal.vcf", "../vcfs/020430501.merge.dedup.realign.recal.vcf", "../vcfs/020430901.merge.dedup.realign.recal.vcf", "../vcfs/020431001.merge.dedup.realign.recal.vcf", "../vcfs/020431101.merge.dedup.realign.recal.vcf", "../vcfs/020431201.merge.dedup.realign.recal.vcf", "../vcfs/020431401.merge.dedup.realign.recal.vcf", "../vcfs/020431701.merge.dedup.realign.recal.vcf"]
-pool10 = ["../vcfs/020430101.merge.dedup.realign.recal.vcf", "../vcfs/020430501.merge.dedup.realign.recal.vcf", "../vcfs/020430901.merge.dedup.realign.recal.vcf", "../vcfs/020431001.merge.dedup.realign.recal.vcf", "../vcfs/020431101.merge.dedup.realign.recal.vcf", "../vcfs/020431201.merge.dedup.realign.recal.vcf", "../vcfs/020431401.merge.dedup.realign.recal.vcf", "../vcfs/020431701.merge.dedup.realign.recal.vcf", "../vcfs/020431801.merge.dedup.realign.recal.vcf", "../vcfs/020431901.merge.dedup.realign.recal.vcf"]
-
-//pool_individuals = [pool4, pool6, pool8, pool10]
-//pool_individuals = [pool4]
-sample_pools = [2, 4, 6, 8, 10]
-//sample_pools = [4]
-
+// Input is a text file containing input bam files for that pool. 
+// Use to get sample IDs to match up with vcfs 
 set_pool = {
     branch.num_samples = branch.name.toInteger()
-    def all_inputs = "$inputs".split(" ").toList()
-    branch.pool_samples = all_inputs[0..branch.num_samples-1]
+    def all_vcfs = "$inputs.vcf".split(" ").toList()
+    branch.pool_sample_ids = get_sampleid(input.txt) //extract read ids from file
+    branch.pool_samples = //vcf inputs starting with pool_sample_ids
     exec """
         echo $num_samples $pool_samples > ${num_samples}.txt
     """
@@ -84,10 +66,10 @@ merge_vcfs = {
 }
 
 run {
-    sample_pools * [
-        set_pool + 
-        "%.vcf" * [
-            filter_vcf + compress_vcf + index_vcf 
-        ] + merge_vcfs + compress_vcf + index_vcf
+    "%.txt" * [
+        set_pool //+ 
+//        "%.vcf" * [
+//            filter_vcf + compress_vcf + index_vcf 
+//        ] + merge_vcfs + compress_vcf + index_vcf
     ]
 }

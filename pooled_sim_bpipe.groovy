@@ -33,7 +33,7 @@ set_pool = {
 
     produce(branch.num_samples + ".txt") {
     exec """
-        echo "pool$num_samples = $pool_samples" > $output.txt
+        echo "$pool_samples" > $output.txt
     """
     // need to check if there are enough input sequences to create pool of this size
     forward(pool_samples)

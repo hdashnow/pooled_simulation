@@ -10,7 +10,7 @@ run {
     ~"(.*)_R[0-9][_.].*fastq.gz" * [ 
         set_sample_info + align + index_bam 
     ] +
-    ~"(.*_R[0-9])[_.].*bam" * [ 
+    ~"(.*)_AGRF_.*bam" * [ 
         set_sample_info + merge_bams +
          //+ index_bam +
         realignIntervals + realign + index_bam +

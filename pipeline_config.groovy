@@ -10,8 +10,10 @@ TOOLS="$BASE/tools"
 PICARD="/usr/local/installed/picard/2.0.1/picard.jar"
 GATK="/usr/local/installed/gatk/3.8"
 
+// Scripts
+MEDIAN_AWK="/group/bioi1/harrietd/git/micro-genotyper-long/repeat_genotyper_bpipes/median.awk"
+
 // Ref files
-EXOME_TARGET="/group/bioi1/shared/genomes/hg19/exome_targets/nextera_rapid_capture_exome/target_region.bed"
 EXCLUDE="$BASE/CS_excluded.bed"
 REFBASE="/group/bioi1/shared/genomes/hg19/gatk" 
 REF="$REFBASE/gatk.ucsc.hg19.fasta"
@@ -19,3 +21,6 @@ DBSNP="$REFBASE/dbsnp_138.hg19.vcf"
 GOLD_STANDARD_INDELS="$REFBASE/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf"
 
 combined_bed="combined_target.bed"
+
+PLATFORM='illumina'
+threads=8 //for BWA

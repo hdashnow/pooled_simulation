@@ -16,6 +16,7 @@ run {
         realignIntervals + realign + index_bam +
         coverage +
         call_variants +
-        compress_vcf + index_vcf
+        annotate_vcf
+//        compress_vcf + index_vcf
     ]
 }

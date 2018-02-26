@@ -19,6 +19,9 @@ REFBASE="/group/bioi1/shared/genomes/hg19/gatk"
 REF="$REFBASE/gatk.ucsc.hg19.fasta"
 DBSNP="$REFBASE/dbsnp_138.hg19.vcf"
 GOLD_STANDARD_INDELS="$REFBASE/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf"
+GNOMAD="/group/bioi1/shared/genomes/hg19/gnomadData/gnomad_r2.0.2"
+
+VCFANNO_CONFIG="/group/bioi1/harrietd/git/pooled_simulation/gnomadExomeGenomeSHORT_self.toml"
 
 combined_bed="combined_target.bed"
 

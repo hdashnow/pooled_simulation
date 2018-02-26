@@ -138,6 +138,16 @@ call_variants = {
      }
  }
 
+@filter('annotated')
+annotate_vcf = {
+    output.dir="variants"
+    exec """
+        set -o pipefail
+
+        vcfanno -base-path $GNOMAD $VCFANNO_CONFIG $input.vcf > $output.vcf
+    """
+}
+
 compress_vcf = {
     transform("vcf") to ("vcf.gz") {
         output.dir="variants"

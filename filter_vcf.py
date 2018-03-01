@@ -29,6 +29,39 @@ def variant_id(record):
     POSstr = '{0:09d}'.format(record.POS) # add leading 0s
     return '_'.join([str(x) for x in [record.CHROM, POSstr, record.REF, ALTstr]])
 
+def sample_id_from_fname(fname):
+    sample_id = os.path.basename(fname).split('.')[0]
+    if sample_id == 'merge':
+        sample_id = os.path.basename(fname).split('.')[1]
+    return(sample_id)
+
+def count_nonref_alleles(GT_string):
+    alleles = GT_string.split('/')
+    nonref_allele_count = len(alleles) - sum([allele == "0" for allele in alleles])
+    return(nonref_allele_count)
+
+def get_gnomad_annotations(record):
+    try:
+        AF_EXOMESgnomad = record.INFO['AF_EXOMESgnomad'][0]
+    except KeyError:
+        AF_EXOMESgnomad = 'NA'
+    try:
+        Hom_Indiv_Exomes = record.INFO['Hom_Indiv_Exomes'][0]
+    except KeyError:
+        Hom_Indiv_Exomes = 'NA'
+    try:
+        AF_GENOMESgnomad = record.INFO['AF_GENOMESgnomad'][0]
+    except KeyError:
+        AF_GENOMESgnomad = 'NA'
+    try:
+        Hom_genomes = record.INFO['Hom_genomes'][0]
+    except KeyError:
+        Hom_genomes = 'NA'
+
+    #print(AF_EXOMESgnomad, Hom_Indiv_Exomes, AF_GENOMESgnomad, Hom_genomes)
+    #sys.exit()
+    return {'AF_exome': AF_EXOMESgnomad, 'Hom_exome': Hom_Indiv_Exomes, 'AF_genome': AF_GENOMESgnomad, 'Hom_genome': Hom_genomes}
+
 def main():
     # Parse command line arguments
     args = parse_args()
@@ -42,29 +75,33 @@ def main():
         outstream = sys.stdout
 
     parent_vars = set()
-    minor_allele_counts = []
+    var_dict = {}
+    #pool_minor_allele_counts = []
     
     with open(parent_vcf_file, 'r') as this_vcf:
         for record in vcf.Reader(this_vcf):
             var_id = variant_id(record)
             parent_vars.add(var_id)
 
-            GT = record.samples[0]['GT']
-            alleles = GT.split('/')
-            minor_allele_count = sum([allele == "1" for allele in alleles])
-            minor_allele_counts.append(minor_allele_count)
+            pool_minor_allele_count = count_nonref_alleles(record.samples[0]['GT'])
+            #pool_minor_allele_counts.append(pool_minor_allele_count)
+            record_dict = get_gnomad_annotations(record)
+            record_dict['pool_minor_allele_count'] = pool_minor_allele_count
+            record_dict['proband_minor_allele_count'] = 'NA'
+            record_dict['in_pool'] = 'TRUE'
+            record_dict['in_any_proband'] = 'FALSE'
+            var_dict[var_id] = record_dict
+            
+#    print('Parent pool')
+#    print(len(parent_vars), 'variants')
+#    print()
+#    print(Counter(pool_minor_allele_counts))
+#    print()
 
-    print('Parent pool')
-    print(len(parent_vars), 'variants')
-    print()
-    print(Counter(minor_allele_counts))
-
-    proband_vars = {}
-    print()
-
+    #proband_vars = set()
     for vcf_file in proband_vcfs_files:
-        proband_id = os.path.basename(vcf_file).split('.')[0]
-        proband_vars[proband_id] = set()
+        proband_id = sample_id_from_fname(vcf_file)
+        #proband_vars[proband_id] = set()
         
         with open(vcf_file, 'r') as this_vcf:
             vcf_reader = vcf.Reader(this_vcf)
@@ -72,15 +109,41 @@ def main():
             for record in vcf_reader:
 
                 var_id = variant_id(record)
-                proband_vars[proband_id].add(var_id)
+                #proband_vars[proband_id].add(var_id)
+
                 if var_id not in parent_vars:
                     vcf_writer.write_record(record)
+                if var_id not in var_dict:
+                    var_dict[var_id] = get_gnomad_annotations(record)
+                    var_dict[var_id]['in_pool'] = 'FALSE'
+                    var_dict[var_id]['pool_minor_allele_count'] = 'NA'
+                    var_dict[var_id]['proband_minor_allele_count'] = 0
+                if var_dict[var_id]['proband_minor_allele_count'] == 'NA':
+                    var_dict[var_id]['proband_minor_allele_count'] = 0
+                proband_minor_allele_count = count_nonref_alleles(record.samples[0]['GT'])
+                var_dict[var_id]['proband_minor_allele_count'] += proband_minor_allele_count
+                var_dict[var_id]['in_any_proband'] = 'TRUE'
+                #proband_vars.add(var_id)
 
-    for key in proband_vars:
-        print('Proband:', key)
-        print(len(proband_vars[key]), 'variants before filtering')
-        print(len(proband_vars[key] - parent_vars), 'variants after filtering')
-        print()
+    header = '\t'.join(['variant', 'in_pool', 'in_any_proband', 'pool_minor_allele_count', 
+        'proband_minor_allele_count', 'AF_exome', 'Hom_exome', 'AF_genome', 'Hom_genome']) + '\n'
+    outstream.write(header)
+    for var_id in var_dict:
+        var_line = '{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(var_id, 
+            var_dict[var_id]['in_pool'], var_dict[var_id]['in_any_proband'], 
+            var_dict[var_id]['pool_minor_allele_count'], 
+            var_dict[var_id]['proband_minor_allele_count'],
+            var_dict[var_id]['AF_exome'], 
+            var_dict[var_id]['Hom_exome'], var_dict[var_id]['AF_genome'], 
+            var_dict[var_id]['Hom_genome'])
+        outstream.write(var_line)
+    outstream.close()        
+
+#    for key in proband_vars:
+#        print('Proband:', key)
+#        print(len(proband_vars[key]), 'variants before filtering')
+#        print(len(proband_vars[key] - parent_vars), 'variants after filtering')
+#        print()
 
 if __name__ == '__main__':
     main()

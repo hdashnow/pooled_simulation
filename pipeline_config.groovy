@@ -21,9 +21,12 @@ DBSNP="$REFBASE/dbsnp_138.hg19.vcf"
 GOLD_STANDARD_INDELS="$REFBASE/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf"
 GNOMAD="/group/bioi1/shared/genomes/hg19/gnomadData/gnomad_r2.0.2"
 
+// Configuration files
 VCFANNO_CONFIG="/group/bioi1/harrietd/git/pooled_simulation/gnomadExomeGenomeSHORT_self.toml"
 
+// Bed files
 combined_bed="combined_target.bed"
+INT_BED="/group/bioi1/harrietd/pooled-parent/filter/intersected/intersection_Nextera_SureSelectClinical.bed"
 
 PLATFORM='illumina'
 threads=8 //for BWA

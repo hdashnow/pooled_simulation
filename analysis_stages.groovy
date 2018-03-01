@@ -148,6 +148,15 @@ annotate_vcf = {
     """
 }
 
+@filter('intersect')
+intersect_vcf = {
+    doc "Filter vcfs to the intersection of the target regions of the two exome captures used"
+    output.dir="variants"
+    exec """
+        bedtools intersect -header -a $input.vcf -b $INT_BED > $output.vcf
+    """
+}
+
 compress_vcf = {
     transform("vcf") to ("vcf.gz") {
         output.dir="variants"

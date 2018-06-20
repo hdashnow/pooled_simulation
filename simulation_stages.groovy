@@ -158,4 +158,9 @@ cleanup = {
     cleanup "*.bam", "*.vcf", "*.intervals"
 }
 
-
+@filter('highqual')
+filter_vcf_qual = {
+    exec """
+        /group/bioi1/harrietd/src/freebayes/vcflib/bin/vcffilter -f "QUAL > 20" $input.vcf > $output.vcf
+    """
+}

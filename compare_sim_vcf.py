@@ -25,6 +25,9 @@ def parse_args():
     parser.add_argument(
         '--output', type=str, required=False,
         help='Output file name. Defaults to stdout.')
+    parser.add_argument(
+        '--falsepos', type=str, required=False, default='pooled_sim_variants_falsepos.csv',
+        help='Output file name for assumed false positives. Defaults to pooled_sim_variants_falsepos.csv.')
     return parser.parse_args()
 
 def variant_id(record):
@@ -65,6 +68,7 @@ def main():
     pool_vcf_files = args.pool_vcfs
     pool_spec_files = args.pool_specs
     outfile = args.output
+    falsepos_file = args.falsepos
 
     if outfile:
         outstream = open(outfile, 'w')
@@ -150,6 +154,26 @@ def main():
         
     outstream.close()
 
+    outstream = open(falsepos_file, "w")
+    header = 'pool,variant,nonref_allele_count_truth,nonref_allele_count_obs,false_positive\n'
+    outstream.write(header)
+    for pool in pooled_individual_vars:
+        for variant in pool_vars[pool]:
+            if variant in pooled_individual_vars[pool]:
+                falsepos = "FALSE"
+            else:
+                falsepos = "TRUE"
+            nonref_allele_count_obs = pool_var_counts[pool][variant] 
+            try:
+                nonref_allele_count_truth = pooled_individual_vars[pool][variant]
+            except KeyError:
+                nonref_allele_count_truth = 'NA'
+            outstream.write('{},{},{},{},{}\n'.format(pool,
+                variant,
+                nonref_allele_count_truth,
+                nonref_allele_count_obs,
+                falsepos))
+    outstream.close
     # For each pool, check how many variants were found and record their nonref_allele_count
 #    for pool in pooled_individual_vars:
 #        recovered_vars = [var for var in pooled_individual_vars[pool] if var in pool_vars[pool]]

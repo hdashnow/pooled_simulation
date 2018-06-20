@@ -15,6 +15,6 @@ run {
     '%.bam' * [
         set_ploidy + 
         realignIntervals + realign + index_bam + 
-        call_variants
+        call_variants + filter_vcf_qual
     ]
 }

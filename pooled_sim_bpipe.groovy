@@ -3,7 +3,7 @@
 // Takes mapped exome bams. Simulates pooled exomes.
 
 load 'pipeline_config.groovy'
-
+load 'simulation_stages.groovy'
 combined_bed="combined_target.bed"
 
 // Settings
@@ -18,7 +18,8 @@ run {
         ] + merge_bams + fix_header +
         realignIntervals + realign + index_bam + 
         call_variants +
-        compress_vcf + index_vcf //+ 
+        filter_vcf_qual
+//        compress_vcf + index_vcf + 
 //        cleanup
     ]
 }

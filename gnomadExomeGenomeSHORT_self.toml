@@ -1,0 +1,14 @@
+##gnomad Exomes
+[[annotation]]
+file ="gnomad.exomes.r2.0.2.sites.hg19chr.vcf.gz"
+fields = ["AC","AF","AN", "Hom", "Filter"]
+ops=["self","self", "self", "self", "self"]
+names=["GnomadAlleleCountEXOMES","AF_EXOMESgnomad","AN_exomes", "Hom_Indiv_Exomes", "Filter_exomes"]
+
+##gnomad GENOMES
+[[annotation]]
+file ="gnomad.genomes.r2.0.2.sites.coding_only.chr1-22.hg19chr.vcf.gz"
+fields = ["AC","AF","AN","Hom","CSQ","Filter"]
+ops=["self","self","self", "self", "self", "self"]
+names=["GnomadAlleleGENOMES","AF_GENOMESgnomad", "AN_genomes","Hom_genomes", "CSQ_GENOMESgnomad", "Filter_gnomad_genome"]
+#~ 

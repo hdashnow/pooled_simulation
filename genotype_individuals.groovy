@@ -12,7 +12,9 @@ set_ploidy = {
 }
 
 run {
-    '%.bam' * [
+    '%_R*.fastq.gz' * [
+        set_fastq_info +
+        align_bwa + index_bam +
         set_ploidy + 
         realignIntervals + realign + index_bam + 
         call_variants + filter_vcf_qual

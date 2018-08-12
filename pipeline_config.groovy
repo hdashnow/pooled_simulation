@@ -29,4 +29,4 @@ combined_bed="combined_target.bed"
 INT_BED="/group/bioi1/harrietd/pooled-parent/filter/intersected/intersection_Nextera_SureSelectClinical.bed"
 
 PLATFORM='illumina'
-threads=8 //for BWA
+//threads=8 //for BWA

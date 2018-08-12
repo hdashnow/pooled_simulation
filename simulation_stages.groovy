@@ -2,6 +2,83 @@
 // Harriet Dashnow 22 March 2015
 // Takes mapped exome bams. Simulates pooled exomes.
 
+///////////////////
+// Helper functions
+
+def get_fname(path) {
+    x = path.split('/')[-1]
+    return(x)
+}
+
+def get_info(filename) {
+    return(filename.split('/')[-1].split('\\.')[0].split('_'))
+}
+
+
+set_fastq_info = {
+    def info = get_info(input)
+
+    branch.sample = info[0]
+
+    if (info.length >= 2) {
+        branch.lane = info[-2]
+    } else {
+        branch.lane = 'L001'
+    }
+
+    if (info.length >= 5) {
+        branch.flowcell = info[-4]
+        branch.library = info[-3]
+        branch.lane = info[-2]
+    } else {
+        branch.flowcell = 'NA'
+        branch.library = 'NA'
+        branch.lane = 'L001'
+    }
+
+}
+
+@preserve("*.bam")
+align_bwa = {
+    doc "Align reads with bwa mem algorithm."
+
+    output.dir="align"
+
+    def fastaname = get_fname(REF)
+            //set -o pipefail
+    from('fastq.gz', 'fastq.gz') produce(branch.sample + '.bam') {
+        exec """
+            bwa mem -M -t $threads
+            -R "@RG\\tID:${flowcell}.${lane}\\tPL:$PLATFORM\\tPU:${flowcell}.${lane}.${library}\\tLB:${library}\\tSM:${sample}"
+            $REF
+            $inputs |
+            samtools view -bSuh - | samtools sort -o $output.bam -T $output.bam.prefix
+        """, "bwa"
+    }
+}
+
+@preserve("*.bai")
+index_bam = {
+    
+    output.dir="align"
+    
+    transform("bam") to("bam.bai") {
+        exec "samtools index $input.bam"
+    }
+    forward input
+}
+
+//  -v  Only report those entries in A that have _no overlaps_ with B.
+//        - Similar to "grep -v" (an homage).
+intersect_targets = {
+    produce(combined_bed) {
+        exec """
+           bedtools intersect -v -a $EXOME_TARGET -b $EXCLUDE  > $output.bed
+        """
+    forward inputs
+    }    
+}
+
 set_pool = {
     branch.num_samples = branch.name.toInteger()
     branch.ploidy = branch.num_samples*2
@@ -19,16 +96,6 @@ set_pool = {
 }
 }
 
-//  -v  Only report those entries in A that have _no overlaps_ with B.
-//        - Similar to "grep -v" (an homage).
-intersect_targets = {
-    produce(combined_bed) {
-        exec """
-           bedtools intersect -v -a $EXOME_TARGET -b $EXCLUDE  > $output.bed
-        """
-    forward inputs
-    }    
-}
 
 //@filter('downsampled')
 downsample_region = {

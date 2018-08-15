@@ -84,13 +84,15 @@ set_pool = {
     branch.ploidy = branch.num_samples*2
     def all_inputs = "$inputs".split(" ").toList()
 
-    Collections.shuffle(all_inputs)
+    branch.randomseed = branch.num_samples
+
+    Collections.shuffle(all_inputs, new Random(branch.randomseed))
     branch.pool_samples = all_inputs[0..branch.num_samples-1]
 
     produce(branch.num_samples + ".txt") {
     exec """
         echo "$pool_samples" > $output.txt
-    """
+    ""","small"
     // need to check if there are enough input sequences to create pool of this size
     forward(pool_samples)
 }

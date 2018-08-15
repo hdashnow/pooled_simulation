@@ -4,10 +4,10 @@
 
 load 'pipeline_config.groovy'
 load 'simulation_stages.groovy'
-combined_bed="combined_target.bed"
+combined_bed="/group/bioi1/shared/genomes/hg19/exome_targets/NIMBLEGENV2.bed"
 
 // Settings
-CHR='chr22'
+//CHR='chr22'
 sample_pools = [2, 4, 6, 8, 10]
 
 run {

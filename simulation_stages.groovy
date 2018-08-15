@@ -138,35 +138,6 @@ fix_header = {
     """
 }
 
-realignIntervals = {
-    doc "Discover candidate regions for realignment in an alignment with GATK"
-    output.dir="align"
-    exec """
-        java -Xmx4g -jar $GATK/GenomeAnalysisTK.jar 
-            -T RealignerTargetCreator 
-            -R $REF 
-            -I $input.bam 
-            --known $GOLD_STANDARD_INDELS 
-            -o $output.intervals
-            -L $combined_bed
-    """, "realign_target_creator"
-}
-
-@preserve("*.bam")
-realign = {
-    doc "Apply GATK local realignment to specified intervals in an alignment"
-    output.dir="align"
-    exec """
-        java -Xmx5g -jar $GATK/GenomeAnalysisTK.jar 
-             -T IndelRealigner 
-             -R $REF 
-             -I $input.bam 
-             -targetIntervals $input.intervals 
-             -o $output.bam
-             -L $combined_bed
-    ""","local_realign"
-}
-
 index_bam = {
 
     doc "Create an index for a BAM file"
@@ -181,28 +152,21 @@ index_bam = {
     forward input
 }
 
+@transform('vcf')
 call_variants = {
  
     output.dir="variants"
  
-     transform("bam","bam") to("metrics","vcf") {
-         exec """
-                 java -Xmx8g -jar $GATK/GenomeAnalysisTK.jar -T UnifiedGenotyper 
-                    -R $REF 
-                    -I $input.bam 
-                    -nt 4
-                    --dbsnp $DBSNP 
-                    -dcov 1600 
-                    -l INFO 
-                    -L $combined_bed
-                    -A AlleleBalance -A Coverage -A FisherStrand 
-                    -glm BOTH
-                    -metrics $output.metrics
-                    -o $output.vcf
-                    -ploidy $ploidy
-             """, "unified_genotyper"
-     }
- }
+    exec """
+        $GATK --java-options "-Xmx48g" HaplotypeCaller 
+            -R $REF 
+            -I $input.bam 
+            --dbsnp $DBSNP 
+            -L $combined_bed
+            -O $output.vcf
+            -ploidy $ploidy
+    """, "callvariants"
+}
 
 compress_vcf = {
     transform("vcf") to ("vcf.gz") {
@@ -229,6 +193,9 @@ cleanup = {
 
 @filter('highqual')
 filter_vcf_qual = {
+
+    output.dir="variants"
+
     exec """
         /group/bioi1/harrietd/src/freebayes/vcflib/bin/vcffilter -f "QUAL > 20" $input.vcf > $output.vcf
     """

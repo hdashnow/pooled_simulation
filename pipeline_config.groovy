@@ -7,8 +7,8 @@ BASE="/group/bioi1/harrietd/pooled-parent/pooled_simulation"
 
 // Tools
 TOOLS="$BASE/tools"
-PICARD="/usr/local/installed/picard/2.0.1/picard.jar"
-GATK="/usr/local/installed/gatk/3.8"
+PICARD="/group/bioi1/harrietd/src/picard-2.18.11/picard.jar"
+GATK="/group/bioi1/harrietd/src/gatk-4.0.7.0/gatk"
 
 // Scripts
 MEDIAN_AWK="/group/bioi1/harrietd/git/micro-genotyper-long/repeat_genotyper_bpipes/median.awk"

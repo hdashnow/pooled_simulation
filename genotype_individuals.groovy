@@ -5,7 +5,7 @@
 load 'pipeline_config.groovy'
 load 'simulation_stages.groovy'
 
-combined_bed="combined_target.bed"
+combined_bed="/group/bioi1/shared/genomes/hg19/exome_targets/NIMBLEGENV2.bed"
 
 set_ploidy = {
     branch.ploidy = 2
@@ -16,7 +16,6 @@ run {
         set_fastq_info +
         align_bwa + index_bam +
         set_ploidy + 
-        realignIntervals + realign + index_bam + 
         call_variants + filter_vcf_qual
     ]
 }

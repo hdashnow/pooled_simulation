@@ -11,12 +11,11 @@ combined_bed="/group/bioi1/shared/genomes/hg19/exome_targets/NIMBLEGENV2.bed"
 sample_pools = [2, 4, 6, 8, 10]
 
 run {
-    intersect_targets +
+//    intersect_targets +
     sample_pools * [
         set_pool + "%.bam" * [
             downsample_region
         ] + merge_bams + fix_header +
-        realignIntervals + realign + index_bam + 
         call_variants +
         filter_vcf_qual
 //        compress_vcf + index_vcf + 

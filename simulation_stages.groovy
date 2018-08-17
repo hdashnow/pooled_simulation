@@ -83,8 +83,12 @@ set_pool = {
     branch.num_samples = branch.name.toInteger()
     branch.ploidy = branch.num_samples*2
     def all_inputs = "$inputs".split(" ").toList()
+    
+    var seed : false
+    if(!seed)
+        seed=0
 
-    branch.randomseed = branch.num_samples
+    branch.randomseed = branch.num_samples + seed
 
     Collections.shuffle(all_inputs, new Random(branch.randomseed))
     branch.pool_samples = all_inputs[0..branch.num_samples-1]
@@ -105,7 +109,7 @@ downsample_region = {
         output.dir="align"
         DOWNSAMPLE=7 + 1.0/branch.num_samples
         exec """
-            samtools view -b -s $DOWNSAMPLE $input.bam > $output 
+            samtools view -b -s $DOWNSAMPLE $input.bam > $output.bam 
         """
     }
 }

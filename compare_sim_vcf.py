@@ -45,9 +45,8 @@ def parse_pool_specs(spec_files):
     pool_specs = {}
     for spec_file in spec_files:
         with open(spec_file) as f:
-            spec_txt = f.read()
-            pool_txt, samples_txt = spec_txt.split(' = ')
-            pool_id = pool_txt.lstrip('pool')
+            samples_txt = f.read()
+            pool_id = spec_file.split('.')[-2].lstrip('/')
             samples = []
             for sample_txt in samples_txt.split(', '):
                 sample_bam = sample_txt.lstrip().rstrip().lstrip('[').rstrip(']')

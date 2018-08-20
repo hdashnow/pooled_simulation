@@ -16,6 +16,7 @@ run {
     sample_pools * [
         set_pool +
         merge_bams + fix_header +
+        dedup +
         call_variants +
         filter_vcf_qual
 //        compress_vcf + index_vcf + 

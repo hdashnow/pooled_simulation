@@ -162,6 +162,25 @@ index_bam = {
     forward input
 }
 
+dedup = {
+    doc "Remove PCR duplicates from reads"
+    output.dir="align"
+
+    def safe_tmp_dir = [TMPDIR, UUID.randomUUID().toString()].join( File.separator )
+    exec """
+        mkdir -p "$safe_tmp_dir"
+        java -Xmx4g -Djava.io.tmpdir=$safe_tmp_dir -jar $PICARD MarkDuplicates
+             INPUT=$input.bam 
+             REMOVE_DUPLICATES=true 
+             VALIDATION_STRINGENCY=LENIENT 
+             AS=true 
+             METRICS_FILE=$output.metrics
+             CREATE_INDEX=true
+             OUTPUT=$output.bam
+        rm -r "$safe_tmp_dir"
+    """
+}
+
 @transform('vcf')
 call_variants = {
  

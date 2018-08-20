@@ -15,6 +15,7 @@ run {
     '%_R*.fastq.gz' * [
         set_fastq_info +
         align_bwa + index_bam +
+        dedup +
         set_ploidy + 
         call_variants + filter_vcf_qual
     ]

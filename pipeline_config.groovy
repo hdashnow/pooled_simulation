@@ -5,6 +5,9 @@
 
 BASE="/group/bioi1/harrietd/pooled-parent/pooled_simulation"
 
+// Set a good location for storing large temp files here
+TMPDIR="$BASE/tmpdata"
+
 // Tools
 TOOLS="$BASE/tools"
 PICARD="/group/bioi1/harrietd/src/picard-2.18.11/picard.jar"

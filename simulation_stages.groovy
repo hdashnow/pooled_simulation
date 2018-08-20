@@ -105,8 +105,10 @@ set_pool = {
 
 //@filter('downsampled')
 downsample_region = {
+    
+    output.dir="align"
+
     produce(output.prefix.prefix+'.downsampled.'+branch.num_samples+'.bam') {
-        output.dir="align"
         DOWNSAMPLE=7 + 1.0/branch.num_samples
         exec """
             samtools view -b -s $DOWNSAMPLE $input.bam > $output.bam 
@@ -115,8 +117,10 @@ downsample_region = {
 }
 
 merge_bams = {
+
+    output.dir="align"
+
     produce('merge.'+branch.num_samples+'.bam') {
-        output.dir="align"
         exec """
             java -Xmx4g -jar $PICARD MergeSamFiles
                 ${inputs.bam.withFlag('I=')}
@@ -127,7 +131,9 @@ merge_bams = {
 
 @filter('RGfixed')
 fix_header = {
+
     output.dir="align"
+
     exec """
         java -Xmx4g -jar $PICARD AddOrReplaceReadGroups
             I=$input.bam
@@ -173,8 +179,10 @@ call_variants = {
 }
 
 compress_vcf = {
+
+    output.dir="variants"
+
     transform("vcf") to ("vcf.gz") {
-        output.dir="variants"
         exec """
             bgzip -f -c $input > $output
         """
@@ -182,8 +190,10 @@ compress_vcf = {
 }
 
 index_vcf = {
+
+    output.dir="variants"
+
     transform("vcf.gz") to ("vcf.gz.tbi") {
-        output.dir="variants"
         exec """
             tabix -f -p vcf $input
         """

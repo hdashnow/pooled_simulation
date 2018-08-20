@@ -14,6 +14,13 @@ def get_info(filename) {
     return(filename.split('/')[-1].split('\\.')[0].split('_'))
 }
 
+set_sample_info = {
+
+    doc "Extract sample name from file (up to the first underscore)"
+
+    def info = get_info(input)
+    branch.sample = info[0]
+}
 
 set_fastq_info = {
     def info = get_info(input)
@@ -36,6 +43,14 @@ set_fastq_info = {
         branch.lane = 'L001'
     }
 
+}
+
+fastqc = {
+    doc "Run FASTQC to generate QC metrics for raw reads"
+    output.dir = "fastqc"
+    from('.fastq.gz')  produce(output.prefix.prefix.prefix + '_fastqc.zip') {
+        exec "fastqc -o ${output.dir} $input.gz"
+    }
 }
 
 @preserve("*.bam")
@@ -121,11 +136,35 @@ merge_bams = {
     output.dir="align"
 
     produce('merge.'+branch.num_samples+'.bam') {
+        msg "Merging $inputs.bam size=${inputs.bam.size()}"
         exec """
-            java -Xmx4g -jar $PICARD MergeSamFiles
-                ${inputs.bam.withFlag('I=')}
-                O=$output.bam
+            java -Xmx8g -jar $PICARD MergeSamFiles
+                ${inputs.bam.withFlag("INPUT=")}
+                OUTPUT=$output.bam
+                VALIDATION_STRINGENCY=LENIENT
+                ASSUME_SORTED=true
+                CREATE_INDEX=true
+        ""","merge"
+    }
+}
+
+merge_lanes = {
+    doc """
+        Merge the BAM files from multiple lanes together.
         """
+
+    output.dir="align"
+
+    produce(sample + ".merge.bam") {
+        msg "Merging $inputs.bam size=${inputs.bam.size()}"
+        exec """
+            java -Xmx8g -jar $PICARD MergeSamFiles
+                ${inputs.bam.withFlag("INPUT=")}
+                OUTPUT=$output.bam
+                VALIDATION_STRINGENCY=LENIENT
+                ASSUME_SORTED=true
+                CREATE_INDEX=true
+         """, "merge"
     }
 }
 
@@ -191,7 +230,7 @@ call_variants = {
             -R $REF 
             -I $input.bam 
             --dbsnp $DBSNP 
-            -L $combined_bed
+            -L $EXOME_TARGET
             -O $output.vcf
             -ploidy $ploidy
     """, "callvariants"
@@ -233,3 +272,38 @@ filter_vcf_qual = {
         /group/bioi1/harrietd/src/freebayes/vcflib/bin/vcffilter -f "QUAL > 20" $input.vcf > $output.vcf
     """
 }
+
+@transform('coverage')
+coverage = {
+    exec """
+        bedtools coverage
+            -sorted -d
+            -g ${REF}.genome
+            -a $EXOME_TARGET
+            -b $input.bam |
+            cut -f 5 |
+            sort -n |
+            awk -f $MEDIAN_AWK > $output.coverage
+            """
+}
+
+@filter('annotated')
+annotate_vcf = {
+    output.dir="variants"
+    exec """
+        set -o pipefail
+
+        vcfanno -base-path $GNOMAD $VCFANNO_CONFIG $input.vcf > $output.vcf
+    """
+}
+
+@filter('intersect')
+intersect_vcf = {
+    doc "Filter vcfs to the intersection of the target regions of the two exome captures used"
+    output.dir="variants"
+    exec """
+        bedtools intersect -header -a $input.vcf -b $INT_BED > $output.vcf
+    """
+}
+
+

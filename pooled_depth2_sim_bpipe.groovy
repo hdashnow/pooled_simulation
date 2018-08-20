@@ -5,8 +5,8 @@
 // with no downsampling. e.g. a pool of 10 samples, each with 100x coverage would end up with 1000x coverage
 
 load 'pipeline_config.groovy'
-load 'simulation_stages.groovy'
-combined_bed="/group/bioi1/shared/genomes/hg19/exome_targets/NIMBLEGENV2.bed"
+load 'pipeline_stages.groovy'
+EXOME_TARGET="/group/bioi1/shared/genomes/hg19/exome_targets/NIMBLEGENV2.bed"
 
 // Settings
 sample_pools = [2, 4, 6, 8, 10]
@@ -16,7 +16,7 @@ run {
     sample_pools * [
         set_pool +
         merge_bams + fix_header +
-        dedup +
+//        dedup +
         call_variants +
         filter_vcf_qual
 //        compress_vcf + index_vcf + 

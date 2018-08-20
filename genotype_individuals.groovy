@@ -3,9 +3,9 @@
 // Takes mapped exome bams and calls variants
 
 load 'pipeline_config.groovy'
-load 'simulation_stages.groovy'
+load 'pipeline_stages.groovy'
 
-combined_bed="/group/bioi1/shared/genomes/hg19/exome_targets/NIMBLEGENV2.bed"
+EXOME_TARGET="/group/bioi1/shared/genomes/hg19/exome_targets/NIMBLEGENV2.bed"
 
 set_ploidy = {
     branch.ploidy = 2

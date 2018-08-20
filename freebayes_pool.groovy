@@ -1,4 +1,4 @@
-load 'simulation_stages.groovy'
+load 'pipeline_stages.groovy'
 
 set_pool = {
     branch.num_samples = branch.name.split("\\.")[1].toInteger()

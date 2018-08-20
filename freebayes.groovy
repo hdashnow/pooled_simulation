@@ -1,4 +1,4 @@
-load 'simulation_stages.groovy'
+load 'pipeline_stages.groovy'
 
 @transform("vcf")
 call_variants_freebayes = {

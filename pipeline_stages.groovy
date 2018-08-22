@@ -61,7 +61,7 @@ align_bwa = {
 
     def fastaname = get_fname(REF)
             //set -o pipefail
-    from('fastq.gz', 'fastq.gz') produce(branch.sample + '.bam') {
+    from('fastq.gz', 'fastq.gz') produce(branch.name + '.bam') {
         exec """
             bwa mem -M -t $threads
             -R "@RG\\tID:${flowcell}.${lane}\\tPL:$PLATFORM\\tPU:${flowcell}.${lane}.${library}\\tLB:${library}\\tSM:${sample}"
@@ -155,7 +155,7 @@ merge_lanes = {
 
     output.dir="align"
 
-    produce(sample + ".merge.bam") {
+    produce(branch.sample + ".merge.bam") {
         msg "Merging $inputs.bam size=${inputs.bam.size()}"
         exec """
             java -Xmx8g -jar $PICARD MergeSamFiles

@@ -10,7 +10,7 @@ run {
 //    "%.fastq.gz" * [ fastqc ] +
     ~'(.*?)_.*_R[12].fastq.gz' * [
         set_sample_info +
-        ~'.*?_(.*)_R[12].fastq.gz' * [
+        ~'(.*)_R[12].fastq.gz' * [
             set_fastq_info +
             align_bwa + index_bam
         ] + merge_lanes +

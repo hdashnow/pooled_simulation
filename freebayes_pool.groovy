@@ -19,5 +19,5 @@ call_variants_freebayes = {
 }
 
 run {
-    "%.bam" * [ set_pool + call_variants_freebayes + filter_vcf_qual ]
+    "%.bam" * [ set_pool + call_variants_freebayes + filter_vcf_qual ] + compare_sim
 }

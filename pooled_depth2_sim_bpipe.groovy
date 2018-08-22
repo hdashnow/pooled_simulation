@@ -21,5 +21,5 @@ run {
         filter_vcf_qual
 //        compress_vcf + index_vcf + 
 //        cleanup
-    ]
+    ] + compare_sim
 }

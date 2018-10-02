@@ -20,12 +20,16 @@ set_sample_info = {
 
     def info = get_info(input)
     branch.sample = info[0]
+
+    forward inputs
 }
 
 set_fastq_info = {
     def info = get_info(input)
 
-    branch.sample = info[0]
+    //println(inputs)
+
+    //branch.sample = info[0]
 
     if (info.length >= 2) {
         branch.lane = info[-2]
@@ -42,6 +46,8 @@ set_fastq_info = {
         branch.library = 'NA'
         branch.lane = 'L001'
     }
+
+    forward inputs
 
 }
 
@@ -74,9 +80,9 @@ align_bwa = {
 
 @preserve("*.bai")
 index_bam = {
-    
+
     output.dir="align"
-    
+
     transform("bam") to("bam.bai") {
         exec "samtools index $input.bam"
     }
@@ -91,14 +97,14 @@ intersect_targets = {
            bedtools intersect -v -a $EXOME_TARGET -b $EXCLUDE  > $output.bed
         """
     forward inputs
-    }    
+    }
 }
 
 set_pool = {
     branch.num_samples = branch.name.toInteger()
     branch.ploidy = branch.num_samples*2
     def all_inputs = "$inputs".split(" ").toList()
-    
+
     var seed : false
     if(!seed)
         seed=0
@@ -226,10 +232,10 @@ dedup = {
         mkdir -p "$safe_tmp_dir"
 
         java -Xmx4g -Djava.io.tmpdir=$safe_tmp_dir -jar $PICARD MarkDuplicates
-             INPUT=$input.bam 
-             REMOVE_DUPLICATES=true 
-             VALIDATION_STRINGENCY=LENIENT 
-             AS=true 
+             INPUT=$input.bam
+             REMOVE_DUPLICATES=true
+             VALIDATION_STRINGENCY=LENIENT
+             AS=true
              METRICS_FILE=$output.metrics
              CREATE_INDEX=true
              OUTPUT=$output.bam
@@ -240,18 +246,63 @@ dedup = {
 
 @transform('vcf')
 call_variants = {
- 
+
     output.dir="variants"
- 
+
     exec """
-        $GATK --java-options "-Xmx48g" HaplotypeCaller 
-            -R $REF 
-            -I $input.bam 
-            --dbsnp $DBSNP 
+        $GATK --java-options "-Xmx48g" HaplotypeCaller
+            -R $REF
+            -I $input.bam
+            --dbsnp $DBSNP
             -L $EXOME_TARGET
             -O $output.vcf
             -ploidy $ploidy
     """, "callvariants"
+}
+
+@transform('gvcf')
+call_variants_gvcf = {
+
+    output.dir="variants"
+
+    exec """
+        $GATK --java-options "-Xmx48g" HaplotypeCaller
+            -R $REF
+            -I $input.bam
+            --dbsnp $DBSNP
+            -L $EXOME_TARGET
+            -O $output.gvcf
+            -ploidy $ploidy
+            -ERC GVCF
+    """, "callvariants"
+}
+
+combine_gvcfs = {
+
+    output.dir="variants"
+
+    from ('*.gvcf') produce ('pools_probands.gvcf'){
+
+    exec """
+            $GATK --java-options "-Xmx12g" CombineGVCFs
+                -R $REF
+                ${inputs.gvcf.withFlag("--variant ")}
+                -O $output.gvcf
+    """
+    }
+}
+
+@transform('vcf')
+joint_calling = {
+
+    output.dir="variants"
+
+    exec """
+        $GATK --java-options "-Xmx72g" GenotypeGVCFs
+            -R $REF
+            -V $input.gvcf
+            -O $output.vcf
+    ""","joint_calling"
 }
 
 compress_vcf = {
@@ -328,10 +379,23 @@ compare_sim = {
 
     output.dir="variants"
 
-    from('*.RGfixed.vcf') produce('pooled_sim_compare.csv', 'pooled_sim_compare_falsepos.csv') {
+    from('*.vcf') produce('pooled_sim_compare.csv', 'pooled_sim_compare_falsepos.csv') {
 
         exec """
             /group/bioi1/harrietd/git/STRetch/tools/bin/python /group/bioi1/harrietd/git/pooled_simulation/compare_sim_vcf.py --individual_vcfs /group/bioi1/harrietd/pooled-parent/pooled_simulation2/simplex/individuals/variants/SRR???????.vcf --pool_vcfs $inputs.vcf --pool_specs $inputs.txt --output $output1.csv --falsepos $output2.csv
+    """
+    }
+}
+
+// Incomplete
+compare_analysis = {
+
+    output.dir="variants"
+
+    from('*.vcf') produce(input.prefix + 'compare.csv', input.prefix + '.compare_falsepos.csv') {
+
+        exec """
+            /group/bioi1/harrietd/git/STRetch/tools/bin/python /group/bioi1/harrietd/git/pooled_simulation/compare_sim_vcf.py --individual_vcfs /group/bioi1/harrietd/pooled-parent/proband_genotyping/variants/*.vcf --pool_vcfs $inputs.vcf --pool_specs 4.txt --output $output1.csv --falsepos $output2.csv
     """
     }
 }

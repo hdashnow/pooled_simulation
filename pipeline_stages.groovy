@@ -120,14 +120,30 @@ set_pool = {
 
 //@filter('downsampled')
 downsample_region = {
-    
+
+    doc """Downsample bam files. Calculate the proportion of reads to select
+        by taking 2/pool size so that the final pool will have on average 2x
+        the number of reads in a single sample. If only pooling 2 samples,
+        the two bam files will simply be combined."""
+
     output.dir="align"
 
     produce(output.prefix.prefix+'.downsampled.'+branch.num_samples+'.bam') {
-        DOWNSAMPLE=7 + 1.0/branch.num_samples
-        exec """
-            samtools view -b -s $DOWNSAMPLE $input.bam > $output.bam 
-        """
+
+        if(branch.num_samples > 2) {
+            // the integer part (7) is the random seed
+            // fractional part is the proprtion of reads to sample
+            DOWNSAMPLE=7 + 2.0/branch.num_samples
+            exec """
+                samtools view -b -s $DOWNSAMPLE $input.bam > $output.bam
+            """
+        } else if (branch.num_samples == 2) {
+            exec """
+                cp $input.bam $output.bam
+            """
+        } else {
+            fail "Tried to pool $num_samples samples. This isn't supported."
+        }
     }
 }
 

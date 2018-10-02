@@ -4,7 +4,7 @@
 
 load 'pipeline_config.groovy'
 load 'pipeline_stages.groovy'
-combined_bed="/group/bioi1/shared/genomes/hg19/exome_targets/NIMBLEGENV2.bed"
+EXOME_TARGET="/group/bioi1/shared/genomes/hg19/exome_targets/NIMBLEGENV2.bed"
 
 // Settings
 //CHR='chr22'
@@ -16,9 +16,9 @@ run {
         set_pool + "%.bam" * [
             downsample_region
         ] + merge_bams + fix_header +
-//        dedup +
+        dedup +
         call_variants +
-        filter_vcf_qual
+//        filter_vcf_qual
 //        compress_vcf + index_vcf + 
 //        cleanup
     ] + compare_sim

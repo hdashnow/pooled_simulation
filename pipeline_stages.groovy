@@ -387,15 +387,20 @@ compare_sim = {
     }
 }
 
-// Incomplete
-compare_analysis = {
+compare_joint = {
 
     output.dir="variants"
 
-    from('*.vcf') produce(input.prefix + 'compare.csv', input.prefix + '.compare_falsepos.csv') {
+    from('vcf') produce(input.prefix + 'compare.csv', input.prefix + '.compare_falsepos.csv') {
 
         exec """
-            /group/bioi1/harrietd/git/STRetch/tools/bin/python /group/bioi1/harrietd/git/pooled_simulation/compare_sim_vcf.py --individual_vcfs /group/bioi1/harrietd/pooled-parent/proband_genotyping/variants/*.vcf --pool_vcfs $inputs.vcf --pool_specs 4.txt --output $output1.csv --falsepos $output2.csv
-    """
+            /group/bioi1/harrietd/git/STRetch/tools/bin/python 
+                /group/bioi1/harrietd/git/pooled_simulation/filter_multiVCF.py 
+                --vcf $input.vcf
+                --pool $pool
+                --probands $probands
+                --output $output1.csv
+                --falsepos $output2.csv
+        """
     }
 }

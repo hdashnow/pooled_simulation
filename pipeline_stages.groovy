@@ -113,6 +113,7 @@ set_pool = {
 
     Collections.shuffle(all_inputs, new Random(branch.randomseed))
     branch.pool_samples = all_inputs[0..branch.num_samples-1]
+    branch.pool_sample_ids = branch.pool_samples.collect { get_info(it)[0] }
 
     produce(branch.num_samples + ".txt") {
     exec """
@@ -120,7 +121,7 @@ set_pool = {
     ""","small"
     // need to check if there are enough input sequences to create pool of this size
     forward(pool_samples)
-}
+    }
 }
 
 
@@ -266,7 +267,7 @@ call_variants_gvcf = {
     output.dir="variants"
 
     exec """
-        $GATK --java-options "-Xmx48g" HaplotypeCaller
+        $GATK --java-options "-Xmx32g" HaplotypeCaller
             -R $REF
             -I $input.bam
             --dbsnp $DBSNP
@@ -344,6 +345,9 @@ filter_vcf_qual = {
 
 @transform('coverage')
 coverage = {
+
+    output.dir="qc"
+
     exec """
         bedtools coverage
             -sorted -d

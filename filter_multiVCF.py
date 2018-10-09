@@ -55,6 +55,18 @@ def count_nonref_reads(record_sample):
     allelic_depths = record_sample['AD']
     return(sum(allelic_depths[1:]))
 
+def get_nonref_alleles(GT_string):
+    alleles = set(GT_string.split('/'))
+    try:
+        alleles.remove('.') # remove missing genotypes
+    except KeyError:
+        pass
+    try:
+        alleles.remove('0') # remove reference alleles
+    except KeyError:
+        pass
+    return(alleles)
+
 def main():
     # Parse command line arguments
     args = parse_args()
@@ -112,13 +124,20 @@ def main():
             nonref_reads_pool = count_nonref_reads(record.samples[pool_pos])
             total_reads_pool = record.samples[pool_pos]['DP']
 
+            alleles_in_pool = get_nonref_alleles(record.samples[pool_pos]['GT'])
+            alleles_in_probands = set.union(*[get_nonref_alleles(record.samples[pos]['GT']) for pos in probands_pos])
+
             filtered = 'FALSE'
             if args.filter_reads:
+                # Filter if any non-reference reads are observed
                 min_read_filter = args.filter_reads
                 if nonref_reads_pool >= min_read_filter:
                     filtered = 'TRUE'
             else:
-                if nonref_alleles_pool > 0:
+                # Filter if all the variants found in the probands are also found in the pool
+                # This tends to result in multi-alleleic sites not getting filtered in many cases
+                # Would need to split sites/individuals to fix this?
+                if len(alleles_in_probands - alleles_in_pool) == 0:
                     filtered = 'TRUE'
 
             outstream.write(','.join([str(x) for x in [var_id,nonref_alleles_pool,

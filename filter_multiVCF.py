@@ -1,6 +1,7 @@
 import argparse
 import sys
 import vcf
+from vcf.parser import _Filter
 import os
 from collections import Counter
 
@@ -12,9 +13,9 @@ __email__ = "h.dashnow@gmail.com"
 
 def parse_args():
     """Parse the input arguments, use '-h' for help"""
-    parser = argparse.ArgumentParser(description='Filter proband vcfs based on pooled partent vcf')
+    parser = argparse.ArgumentParser(description='Filter a multiple-sample vcf of probands and a parent pool based on alleles found in the pool.')
     parser.add_argument(
-        '--vcf', type=str, required=True,
+        '--in_vcf', type=str, required=True,
         help='A single multi-sample VCF including all probands and the pool, joint called with GATK GenotypeGVCFs')
     parser.add_argument(
         '--pool', type=str, required=False,
@@ -23,28 +24,31 @@ def parse_args():
         '--probands', type=str, required=False, nargs='+',
         help='Sample name used in the VCF for the probands (assumed to be all but the last sample if not given)')
     parser.add_argument(
-        '--output', type=str, required=False,
-        help='Output file name. Defaults to stdout.')
+        '--out_csv', type=str, required=False, default='pools_probands.compare.csv',
+        help='Output filename for csv (default: %(default)s)')
     parser.add_argument(
-        '--falsepos', type=str, required=False, default='pooled_sim_variants_falsepos.csv',
-        help='Output file name for assumed false positives. Defaults to pooled_sim_variants_falsepos.csv.')
+        '--out_vcf', type=str, required=False, default='pools_probands.compare.vcf',
+        help='Output filename for vcf (default: %(default)s)')
     parser.add_argument(
         '--filter_reads', type=int, required=False,
         help='Filter variants where this number of variant reads is observed in the parent pool. If not set variants will be filtered only if the variant allele was called in the parent pool.')
     return parser.parse_args()
 
 def variant_id(record):
+    """Create a unique ID for each variant so they can be compared"""
     ALTstr = '/'.join([str(x) for x in record.ALT]) # join ALT loci
     POSstr = '{0:09d}'.format(record.POS) # add leading 0s
     return '_'.join([str(x) for x in [record.CHROM, POSstr, record.REF, ALTstr]])
 
 def sample_id_from_fname(fname):
+    """Extract same id from filename"""
     sample_id = os.path.basename(fname).split('.')[0]
     if sample_id == 'merge':
         sample_id = os.path.basename(fname).split('.')[1]
     return(sample_id)
 
 def count_nonref_alleles(GT_string):
+    """Count the number of non-reference alleles from a VCF genotype (GT) string"""
     alleles = GT_string.split('/')
     alleles = [allele for allele in alleles if allele != '.'] # remove missing genotypes
     total_alleles = len(alleles)
@@ -52,10 +56,12 @@ def count_nonref_alleles(GT_string):
     return(nonref_allele_count, total_alleles)
 
 def count_nonref_reads(record_sample):
+    """Count the number of reads supporting all non-reference alleles"""
     allelic_depths = record_sample['AD']
     return(sum(allelic_depths[1:]))
 
 def get_nonref_alleles(GT_string):
+    """Take a VCF genotype (GT) string and return a set containing all non-reference alleles"""
     alleles = set(GT_string.split('/'))
     try:
         alleles.remove('.') # remove missing genotypes
@@ -70,21 +76,22 @@ def get_nonref_alleles(GT_string):
 def main():
     # Parse command line arguments
     args = parse_args()
-    vcf_file = args.vcf
-    outfile = args.output
-    falsepos_file = args.falsepos
+    vcf_file = args.in_vcf
+    outfile = args.out_csv
+    out_vcf = args.out_vcf
 
-    if outfile:
-        outstream = open(outfile, 'w')
-    else:
-        outstream = sys.stdout
+    outstream = open(outfile, 'w')
 
     # Write header
-    outstream.write('variant,nonref_alleles_pool,total_alleles_pool,nonref_alleles_probands,total_alleles_probands,nonref_reads_pool,total_reads_pool,recovered, QUAL\n')
+    outstream.write('variant,nonref_alleles_pool,total_alleles_pool,nonref_alleles_probands,total_alleles_probands,nonref_reads_pool,total_reads_pool,recovered,falsepos,QUAL\n')
 
     with open(vcf_file, 'r') as this_vcf:
         vcf_reader = vcf.Reader(this_vcf)
-        #vcf_writer = vcf.Writer(open(sample_id+".filtered.vcf", 'w'), vcf_reader)
+        # Add an aditional filter that will be inherited by the vcf writer
+        vcf_reader.filters['InPool'] = _Filter('InPool',
+            'All alleles found in the probands are also found in the pool.')
+        # Create vcf writer based on the header from the input vcf
+        vcf_writer = vcf.Writer(open(out_vcf, 'w'), vcf_reader)
 
         all_vcf_samples = vcf_reader.samples
         # Fetch sample names
@@ -140,9 +147,19 @@ def main():
                 if len(alleles_in_probands - alleles_in_pool) == 0:
                     filtered = 'TRUE'
 
+            if filtered == 'TRUE':
+                record.FILTER = 'InPool'
+
+            falsepos = 'FALSE'
+            # likely false positive if found in the pool but not in any of the probands
+            if len(alleles_in_pool - alleles_in_probands) > 0:
+                falsepos = 'TRUE'
+
+            vcf_writer.write_record(record)
+
             outstream.write(','.join([str(x) for x in [var_id,nonref_alleles_pool,
                 total_alleles_pool,nonref_alleles_probands,total_alleles_probands,
-                nonref_reads_pool,total_reads_pool,filtered,qual]]) + '\n')
+                nonref_reads_pool,total_reads_pool,filtered,falsepos,qual]]) + '\n')
 
 if __name__ == '__main__':
     main()

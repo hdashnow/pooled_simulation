@@ -395,16 +395,16 @@ compare_joint = {
 
     output.dir="variants"
 
-    from('vcf') produce(input.prefix + '.compare.csv', input.prefix + '.compare_falsepos.csv') {
+    from('vcf') produce(input.prefix + '.compare.csv', input.prefix + '.compare.vcf') {
 
         exec """
             /group/bioi1/harrietd/git/STRetch/tools/bin/python 
                 /group/bioi1/harrietd/git/pooled_simulation/filter_multiVCF.py 
-                --vcf $input.vcf
+                --in_vcf $input.vcf
                 --pool ${pool.join(' ')}
                 --probands ${probands.join(' ')}
-                --output $output1.csv
-                --falsepos $output2.csv
+                --out_csv $output.csv
+                --out_vcf $output.vcf
         """
     }
 }

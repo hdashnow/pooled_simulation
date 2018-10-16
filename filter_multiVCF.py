@@ -83,7 +83,7 @@ def main():
     outstream = open(outfile, 'w')
 
     # Write header
-    outstream.write('variant,nonref_alleles_pool,total_alleles_pool,nonref_alleles_probands,total_alleles_probands,nonref_reads_pool,total_reads_pool,recovered,falsepos,QUAL\n')
+    outstream.write('variant,nonref_alleles_pool,total_alleles_pool,nonref_alleles_probands,total_alleles_probands,nonref_reads_pool,total_reads_pool,recovered,falsepos,QD,AF_EXOMESgnomad,AF_GENOMESgnomad\n')
 
     with open(vcf_file, 'r') as this_vcf:
         vcf_reader = vcf.Reader(this_vcf)
@@ -117,9 +117,29 @@ def main():
         probands_pos = [all_vcf_samples.index(proband) for proband in proband_names]
         
         for record in vcf_reader:
+
+            # Extract gnomad allele frequency data if available
+            try:
+                AF_EXOMESgnomad = record.INFO['AF_EXOMESgnomad']
+                if len(AF_EXOMESgnomad) == 1:
+                    AF_EXOMESgnomad = AF_EXOMESgnomad[0]
+                else:
+                    AF_EXOMESgnomad = 'NA' # throw away gnomad data at multiallelic sites
+            except KeyError:
+                AF_EXOMESgnomad = 'NA'
+            try:
+                AF_GENOMESgnomad = record.INFO['AF_GENOMESgnomad']
+                if len(AF_GENOMESgnomad) == 1:
+                    AF_GENOMESgnomad = AF_GENOMESgnomad[0]
+                else:
+                    AF_GENOMESgnomad = 'NA'
+            except KeyError:
+                AF_GENOMESgnomad = 'NA'
+
             var_id = variant_id(record)
             nonref_alleles_pool, total_alleles_pool = count_nonref_alleles(record.samples[pool_pos]['GT'])
             qual = record.QUAL
+            QD = qual/record.INFO['DP']
 
             nonref_alleles_probands = 0
             total_alleles_probands = 0
@@ -159,7 +179,8 @@ def main():
 
             outstream.write(','.join([str(x) for x in [var_id,nonref_alleles_pool,
                 total_alleles_pool,nonref_alleles_probands,total_alleles_probands,
-                nonref_reads_pool,total_reads_pool,filtered,falsepos,qual]]) + '\n')
+                nonref_reads_pool,total_reads_pool,filtered,falsepos,QD,
+                AF_EXOMESgnomad, AF_GENOMESgnomad]]) + '\n')
 
 if __name__ == '__main__':
     main()

@@ -51,6 +51,17 @@ set_fastq_info = {
 
 }
 
+set_joint = {
+
+    doc "Gather the input gvcfs from probands as well as the pool gvcf just created."
+
+    branch.pool = branch.name
+    branch.probands = branch.pool_sample_ids
+    def queries = branch.pool_sample_ids.collect { '.*' + it + '.*gvcf$' }
+    def forward_files = queries.collect { proband_gvcfs.grep(~it) }.flatten() + input.gvcf
+    forward forward_files
+}
+
 fastqc = {
     doc "Run FASTQC to generate QC metrics for raw reads"
     output.dir = "fastqc"
@@ -205,7 +216,7 @@ fix_header = {
             RGID=1
             RGLB=input
             RGPL=Illumina
-            RGSM=Company
+            RGSM=$num_samples
             CREATE_INDEX=True
     """
 }
@@ -282,7 +293,12 @@ combine_gvcfs = {
 
     output.dir="variants"
 
-    from ('*.gvcf') produce ('pools_probands.gvcf'){
+    def outname = 'pools_probands.gvcf'
+    if (branch.num_samples) {
+        outname = 'merge.' + branch.num_samples + '.pools_probands.gvcf'
+    }
+
+    from ('*.gvcf') produce (outname){
 
     exec """
             $GATK --java-options "-Xmx12g" CombineGVCFs
@@ -401,7 +417,7 @@ compare_joint = {
             /group/bioi1/harrietd/git/STRetch/tools/bin/python 
                 /group/bioi1/harrietd/git/pooled_simulation/filter_multiVCF.py 
                 --in_vcf $input.vcf
-                --pool ${pool.join(' ')}
+                --pool $pool
                 --probands ${probands.join(' ')}
                 --out_csv $output.csv
                 --out_vcf $output.vcf

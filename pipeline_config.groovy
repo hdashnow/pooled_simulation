@@ -11,7 +11,7 @@ TMPDIR="$BASE/tmpdata"
 // Tools
 TOOLS="$BASE/tools"
 PICARD="/group/bioi1/harrietd/src/picard-2.18.11/picard.jar"
-GATK="/group/bioi1/harrietd/src/gatk-4.0.7.0/gatk"
+GATK="/group/bioi1/harrietd/src/gatk-4.0.10.1/gatk"
 
 // Scripts
 MEDIAN_AWK="/group/bioi1/harrietd/git/micro-genotyper-long/repeat_genotyper_bpipes/median.awk"

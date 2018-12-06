@@ -208,8 +208,8 @@ def main():
                     tmp_record.samples = [record.samples[proband_pos]]
                     probandVCF_dict[proband].write_record(tmp_record)
 
-            # Write all samples to VCF
-            #XXX only if possible de novo? Remove this entirely?
+            # Write all samples from all variants to VCF
+            # includes FILTER InPool for variants where all alleles in probands are recovered in pool
             vcf_writer.write_record(record)
 
             outstream.write(','.join([str(x) for x in [var_id,nonref_alleles_pool,

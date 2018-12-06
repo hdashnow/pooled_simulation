@@ -199,7 +199,7 @@ def main():
 
                 # Check if variant is recovered for this proband specifically
                 #all_alleles_recovered()
-                alleles_this_proband = get_nonref_alleles(record.samples[proband_pos]['GT']
+                alleles_this_proband = get_nonref_alleles(record.samples[proband_pos]['GT'])
 
                 # Write out the variant (GT for this sample only) to the vcf file for that proband
                 # only if the variant is not found in the parent pool

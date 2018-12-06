@@ -4,6 +4,7 @@ import vcf
 from vcf.parser import _Filter
 import os
 from collections import Counter
+import copy
 
 __author__ = "Harriet Dashnow"
 __credits__ = ["Harriet Dashnow"]
@@ -73,6 +74,17 @@ def get_nonref_alleles(GT_string):
         pass
     return(alleles)
 
+def is_recovered(alleles_in_probands, alleles_in_pool):
+    """Filter if all the variants found in the proband(s) are also found in the pool.
+    This tends to result in multi-alleleic sites not getting filtered in many cases.
+
+    alleles_in_probands, alleles_in_pool: iterable consisting of items that can be compared in a set
+    """
+    if len(set(alleles_in_probands) - set(alleles_in_pool)) == 0:
+        return True
+    else:
+        return False
+
 def main():
     # Parse command line arguments
     args = parse_args()
@@ -115,7 +127,16 @@ def main():
         pool_size = len(proband_names)
         pool_pos = all_vcf_samples.index(pool_name)
         probands_pos = [all_vcf_samples.index(proband) for proband in proband_names]
-        
+
+        # Create a vcf writer for each proband
+        probandVCF_dict = {}
+        for proband in proband_names:
+            # Can't deepcopy vcf reader object, so editing it and returning it to previous state
+            vcf_reader.samples= [proband]
+            proband_out_vcf = proband + '.denovo.vcf'
+            probandVCF_dict[proband] = vcf.Writer(open(proband_out_vcf, 'w'), vcf_reader)
+        vcf_reader.samples = all_vcf_samples
+
         for record in vcf_reader:
 
             # Extract gnomad allele frequency data if available
@@ -141,13 +162,6 @@ def main():
             qual = record.QUAL
             QD = qual/record.INFO['DP']
 
-            nonref_alleles_probands = 0
-            total_alleles_probands = 0
-            for proband_pos in probands_pos:
-                nonref, total = count_nonref_alleles(record.samples[proband_pos]['GT'])
-                nonref_alleles_probands += nonref
-                total_alleles_probands += total
-            
             nonref_reads_pool = count_nonref_reads(record.samples[pool_pos])
             total_reads_pool = record.samples[pool_pos]['DP']
 
@@ -162,9 +176,7 @@ def main():
                     filtered = 'TRUE'
             else:
                 # Filter if all the variants found in the probands are also found in the pool
-                # This tends to result in multi-alleleic sites not getting filtered in many cases
-                # Would need to split sites/individuals to fix this?
-                if len(alleles_in_probands - alleles_in_pool) == 0:
+                if is_recovered(alleles_in_probands, alleles_in_pool):
                     filtered = 'TRUE'
 
             if filtered == 'TRUE':
@@ -175,6 +187,29 @@ def main():
             if len(alleles_in_pool - alleles_in_probands) > 0:
                 falsepos = 'TRUE'
 
+            # Count nonref alleles and total alleles in probands
+            # Write a filtered vcf for each proband
+            nonref_alleles_probands = 0
+            total_alleles_probands = 0
+            for proband_pos in probands_pos:
+                proband = proband_names[proband_pos]
+                nonref, total = count_nonref_alleles(record.samples[proband_pos]['GT'])
+                nonref_alleles_probands += nonref
+                total_alleles_probands += total
+
+                # Check if variant is recovered for this proband specifically
+                #all_alleles_recovered()
+                alleles_this_proband = get_nonref_alleles(record.samples[proband_pos]['GT']
+
+                # Write out the variant (GT for this sample only) to the vcf file for that proband
+                # only if the variant is not found in the parent pool
+                if not is_recovered(alleles_this_proband, alleles_in_pool):
+                    tmp_record = copy.deepcopy(record)
+                    tmp_record.samples = [record.samples[proband_pos]]
+                    probandVCF_dict[proband].write_record(tmp_record)
+
+            # Write all samples to VCF
+            #XXX only if possible de novo? Remove this entirely?
             vcf_writer.write_record(record)
 
             outstream.write(','.join([str(x) for x in [var_id,nonref_alleles_pool,

@@ -14,7 +14,7 @@ __email__ = "h.dashnow@gmail.com"
 
 def parse_args():
     """Parse the input arguments, use '-h' for help"""
-    parser = argparse.ArgumentParser(description='Filter a multiple-sample vcf of probands and a parent pool based on alleles found in the pool.')
+    parser = argparse.ArgumentParser(description='Filter a multiple-sample vcf of probands and a parent pool based on alleles found in the pool, to find potential de novo variants.')
     parser.add_argument(
         '--in_vcf', type=str, required=True,
         help='A single multi-sample VCF including all probands and the pool, joint called with GATK GenotypeGVCFs')
@@ -30,6 +30,9 @@ def parse_args():
     parser.add_argument(
         '--out_vcf', type=str, required=False, default='pools_probands.compare.vcf',
         help='Output filename for vcf (default: %(default)s)')
+    parser.add_argument(
+        '--out_proband_vcf', type=str, required=False, default='.denovo.vcf',
+        help='Suffix for output filtered vcfs for each proband, prefix is sample anem (default: %(default)s)')
     parser.add_argument(
         '--filter_reads', type=int, required=False,
         help='Filter variants where this number of variant reads is observed in the parent pool. If not set variants will be filtered only if the variant allele was called in the parent pool.')
@@ -133,7 +136,7 @@ def main():
         for proband in proband_names:
             # Can't deepcopy vcf reader object, so editing it and returning it to previous state
             vcf_reader.samples= [proband]
-            proband_out_vcf = proband + '.denovo.vcf'
+            proband_out_vcf = proband + args.out_proband_vcf
             probandVCF_dict[proband] = vcf.Writer(open(proband_out_vcf, 'w'), vcf_reader)
         vcf_reader.samples = all_vcf_samples
 

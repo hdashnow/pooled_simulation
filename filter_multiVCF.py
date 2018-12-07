@@ -98,7 +98,8 @@ def main():
     outstream = open(outfile, 'w')
 
     # Write header
-    outstream.write('variant,nonref_alleles_pool,total_alleles_pool,nonref_alleles_probands,total_alleles_probands,nonref_reads_pool,total_reads_pool,recovered,falsepos,QD,AF_EXOMESgnomad,AF_GENOMESgnomad\n')
+#    outstream.write('variant,nonref_alleles_pool,total_alleles_pool,nonref_alleles_probands,total_alleles_probands,nonref_reads_pool,total_reads_pool,recovered,falsepos,QD,AF_EXOMESgnomad,AF_GENOMESgnomad\n')
+    outstream.write('variant,nonref_alleles_pool,total_alleles_pool,nonref_alleles_probands,total_alleles_probands,nonref_reads_pool,total_reads_pool,recovered_all,falsepos,QD,AF_EXOMESgnomad,AF_GENOMESgnomad,proband,recovered_in_proband\n')
 
     with open(vcf_file, 'r') as this_vcf:
         vcf_reader = vcf.Reader(this_vcf)
@@ -201,24 +202,31 @@ def main():
                 total_alleles_probands += total
 
                 # Check if variant is recovered for this proband specifically
-                #all_alleles_recovered()
                 alleles_this_proband = get_nonref_alleles(record.samples[proband_pos]['GT'])
 
                 # Write out the variant (GT for this sample only) to the vcf file for that proband
                 # only if the variant is not found in the parent pool
+                recovered_proband = 'TRUE'
                 if not is_recovered(alleles_this_proband, alleles_in_pool):
                     tmp_record = copy.deepcopy(record)
                     tmp_record.samples = [record.samples[proband_pos]]
                     probandVCF_dict[proband].write_record(tmp_record)
+                    recovered_proband = 'FALSE'
+
+                outstream.write(','.join([str(x) for x in [var_id,nonref_alleles_pool,
+                total_alleles_pool,nonref_alleles_probands,total_alleles_probands,
+                nonref_reads_pool,total_reads_pool,filtered,falsepos,QD,
+                AF_EXOMESgnomad, AF_GENOMESgnomad, proband, recovered_proband]]) + '\n')
+
 
             # Write all samples from all variants to VCF
             # includes FILTER InPool for variants where all alleles in probands are recovered in pool
             vcf_writer.write_record(record)
 
-            outstream.write(','.join([str(x) for x in [var_id,nonref_alleles_pool,
-                total_alleles_pool,nonref_alleles_probands,total_alleles_probands,
-                nonref_reads_pool,total_reads_pool,filtered,falsepos,QD,
-                AF_EXOMESgnomad, AF_GENOMESgnomad]]) + '\n')
+#            outstream.write(','.join([str(x) for x in [var_id,nonref_alleles_pool,
+#                total_alleles_pool,nonref_alleles_probands,total_alleles_probands,
+#                nonref_reads_pool,total_reads_pool,filtered,falsepos,QD,
+#                AF_EXOMESgnomad, AF_GENOMESgnomad]]) + '\n')
 
 if __name__ == '__main__':
     main()

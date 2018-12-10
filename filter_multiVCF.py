@@ -201,6 +201,14 @@ def main():
                 nonref_alleles_probands += nonref
                 total_alleles_probands += total
 
+            for proband_pos in probands_pos:
+                proband = proband_names[proband_pos]
+                nonref, total = count_nonref_alleles(record.samples[proband_pos]['GT'])
+
+                # Skip variant if this individual has no non-ref alleles e.g. GT is  ./. or 0/0
+                if nonref == 0:
+                    continue
+
                 # Check if variant is recovered for this proband specifically
                 alleles_this_proband = get_nonref_alleles(record.samples[proband_pos]['GT'])
 
@@ -214,9 +222,18 @@ def main():
                     recovered_proband = 'FALSE'
 
                 outstream.write(','.join([str(x) for x in [var_id,nonref_alleles_pool,
-                total_alleles_pool,nonref_alleles_probands,total_alleles_probands,
-                nonref_reads_pool,total_reads_pool,filtered,falsepos,QD,
-                AF_EXOMESgnomad, AF_GENOMESgnomad, proband, recovered_proband]]) + '\n')
+                    total_alleles_pool,nonref_alleles_probands,total_alleles_probands,
+                    nonref_reads_pool,total_reads_pool,filtered,falsepos,QD,
+                    AF_EXOMESgnomad, AF_GENOMESgnomad, proband, recovered_proband]]) + '\n')
+
+            # If none of the probands have any non-ref alleles at this locus
+            # Still report it in the csv for false positives counts
+            if nonref_alleles_probands == 0:
+                outstream.write(','.join([str(x) for x in [var_id,nonref_alleles_pool,
+                    total_alleles_pool,nonref_alleles_probands,total_alleles_probands,
+                    nonref_reads_pool,total_reads_pool,filtered,falsepos,QD,
+                    AF_EXOMESgnomad, AF_GENOMESgnomad, 'NA', 'NA']]) + '\n')
+
 
 
             # Write all samples from all variants to VCF

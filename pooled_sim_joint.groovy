@@ -25,7 +25,6 @@ run {
         ] + merge_bams + fix_header +
         dedup +
         call_variants_gvcf +
-        split_MNPs +
         // Do joint calling on simulated pool with its constituant samples
         set_joint +
         combine_gvcfs +

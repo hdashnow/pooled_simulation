@@ -285,22 +285,8 @@ call_variants_gvcf = {
             -L $EXOME_TARGET
             -O $output.gvcf
             -ploidy $ploidy
-            --max-genotype-count 12
             -ERC GVCF
     """, "callvariants"
-}
-
-@filter('split')
-split_MNPs = {
-
-    output.dir="variants"
-
-    exec """
-        $GATK --java-options "-Xmx12g" VariantsToAllelicPrimitives
-            -R $REF
-            -I $input.gvcf
-            -o $output.gvcf
-    """
 }
 
 combine_gvcfs = {

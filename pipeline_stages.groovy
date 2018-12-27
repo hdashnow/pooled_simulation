@@ -322,29 +322,6 @@ joint_calling = {
     ""","joint_calling"
 }
 
-compress_vcf = {
-
-    output.dir="variants"
-
-    transform("vcf") to ("vcf.gz") {
-        exec """
-            bgzip -f -c $input > $output
-        """
-    }
-}
-
-index_vcf = {
-
-    output.dir="variants"
-
-    transform("vcf.gz") to ("vcf.gz.tbi") {
-        exec """
-            tabix -f -p vcf $input
-        """
-        forward input
-    }
-}
-
 cleanup = {
     cleanup "*.bam", "*.vcf", "*.intervals"
 }

@@ -284,7 +284,6 @@ call_variants_gvcf = {
             --dbsnp $DBSNP
             -L $EXOME_TARGET
             -O $output.gvcf
-            -ploidy $ploidy
             -ERC GVCF
     """, "callvariants"
 }
@@ -410,6 +409,7 @@ compare_joint = {
                 --probands ${probands.join(' ')}
                 --out_csv $output.csv
                 --out_vcf $output.vcf
+                --filter_reads 1
         """
     }
 }

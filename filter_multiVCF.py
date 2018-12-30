@@ -32,10 +32,10 @@ def parse_args():
         help='Output filename for vcf (default: %(default)s)')
     parser.add_argument(
         '--out_proband_vcf', type=str, required=False, default='.denovo.vcf',
-        help='Suffix for output filtered vcfs for each proband, prefix is sample anem (default: %(default)s)')
+        help='Suffix for output filtered vcfs for each proband, prefix is sample name (default: %(default)s)')
     parser.add_argument(
         '--filter_reads', type=int, required=False,
-        help='Filter variants where this number of variant reads is observed in the parent pool. If not set variants will be filtered only if the variant allele was called in the parent pool.')
+        help='For the purposes of filtering, consider a variant allele called in the pool if it is supported by this many reads. If not set variants will be filtered only if the variant allele was called in the parent pool genotype.')
     return parser.parse_args()
 
 def variant_id(record):
@@ -63,6 +63,25 @@ def count_nonref_reads(record_sample):
     """Count the number of reads supporting all non-reference alleles"""
     allelic_depths = record_sample['AD']
     return(sum(allelic_depths[1:]))
+
+def alleles_supported(record, sample_pos, n, include_ref = True):
+    """Return alleles supported by at least n reads
+    Args:
+        record (pyvcf record object)
+        sample_pos (int): position of the desired sample in the vcf (0-based)
+        n (int): return allele if it is supported by at least n reads
+        include_ref (bool): if True, return the reference allele if it is supported by n reads
+    Returns:
+        list of alleles that are supported by at least n reads (strings)
+    """
+    # Get numeric representation of the alleles i.e. ref = 0, first alt = 1
+    all_alleles = [str(x) for x in range(len(record.alleles))]
+    allelic_depths = record.samples[sample_pos]['AD']
+    if not include_ref:
+        all_alleles = all_alleles[1:]
+        allelic_depths = allelic_depths[1:]
+    supported_alleles = [all_alleles[i] for i in range(len(all_alleles)) if allelic_depths[i] >= n]
+    return(supported_alleles)
 
 def get_nonref_alleles(GT_string):
     """Take a VCF genotype (GT) string and return a set containing all non-reference alleles"""
@@ -173,36 +192,40 @@ def main():
             alleles_in_probands = set.union(*[get_nonref_alleles(record.samples[pos]['GT']) for pos in probands_pos])
 
             filtered = 'FALSE'
+            falsepos = 'FALSE'
             if args.filter_reads:
-                # Filter if any non-reference reads are observed
+                # Filter if there are reads in the pool supporting all the alternate alleles
                 min_read_filter = args.filter_reads
-                if nonref_reads_pool >= min_read_filter:
+                alleles_in_pool_by_reads = set(alleles_supported(record, pool_pos,
+                    min_read_filter, include_ref = False))
+                if is_recovered(alleles_in_probands, alleles_in_pool_by_reads):
                     filtered = 'TRUE'
+                # likely false positive if found in the pool but not in any of the probands
+                if len(alleles_in_pool_by_reads - alleles_in_probands) > 0:
+                    falsepos = 'TRUE'
             else:
                 # Filter if all the variants found in the probands are also found in the pool
                 if is_recovered(alleles_in_probands, alleles_in_pool):
                     filtered = 'TRUE'
+                # likely false positive if found in the pool but not in any of the probands
+                if len(alleles_in_pool - alleles_in_probands) > 0:
+                    falsepos = 'TRUE'
 
             if filtered == 'TRUE':
                 record.FILTER = 'InPool'
-
-            falsepos = 'FALSE'
-            # likely false positive if found in the pool but not in any of the probands
-            if len(alleles_in_pool - alleles_in_probands) > 0:
-                falsepos = 'TRUE'
 
             # Count nonref alleles and total alleles in probands
             # Write a filtered vcf for each proband
             nonref_alleles_probands = 0
             total_alleles_probands = 0
             for proband_pos in probands_pos:
-                proband = proband_names[proband_pos]
+                proband = all_vcf_samples[proband_pos]
                 nonref, total = count_nonref_alleles(record.samples[proband_pos]['GT'])
                 nonref_alleles_probands += nonref
                 total_alleles_probands += total
 
             for proband_pos in probands_pos:
-                proband = proband_names[proband_pos]
+                proband = all_vcf_samples[proband_pos]
                 nonref, total = count_nonref_alleles(record.samples[proband_pos]['GT'])
 
                 # Skip variant if this individual has no non-ref alleles e.g. GT is  ./. or 0/0
@@ -214,12 +237,17 @@ def main():
 
                 # Write out the variant (GT for this sample only) to the vcf file for that proband
                 # only if the variant is not found in the parent pool
-                recovered_proband = 'TRUE'
-                if not is_recovered(alleles_this_proband, alleles_in_pool):
+                recovered_proband = 'FALSE'
+                if args.filter_reads:
+                    if is_recovered(alleles_this_proband, alleles_in_pool_by_reads):
+                        recovered_proband = 'TRUE'
+                else:
+                    if is_recovered(alleles_this_proband, alleles_in_pool):
+                        recovered_proband = 'TRUE'
+                if recovered_proband == 'FALSE':
                     tmp_record = copy.deepcopy(record)
                     tmp_record.samples = [record.samples[proband_pos]]
                     probandVCF_dict[proband].write_record(tmp_record)
-                    recovered_proband = 'FALSE'
 
                 outstream.write(','.join([str(x) for x in [var_id,nonref_alleles_pool,
                     total_alleles_pool,nonref_alleles_probands,total_alleles_probands,

@@ -1,0 +1,11 @@
+language: python
+python:
+ - "3.6"
+cache: packages
+install:
+- pip install pytest
+script:
+- python -m pytest test_*.py
+after_script:
+- coverage run -m pytest test_*.py
+- bash <(curl -s https://codecov.io/bash) -s .

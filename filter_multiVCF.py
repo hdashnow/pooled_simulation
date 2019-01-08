@@ -5,6 +5,7 @@ from vcf.parser import _Filter
 import os
 from collections import Counter
 import copy
+import math
 
 __author__ = "Harriet Dashnow"
 __credits__ = ["Harriet Dashnow"]
@@ -36,6 +37,10 @@ def parse_args():
     parser.add_argument(
         '--filter_reads', type=int, required=False,
         help='For the purposes of filtering, consider a variant allele called in the pool if it is supported by this many reads. If not set variants will be filtered only if the variant allele was called in the parent pool genotype.')
+    parser.add_argument(
+        '--ploidy_filter', type=int, required=False,
+        help='The ploidy of the pooled sample (i.e. 2*number of samples in the pool). If provided, allow variants to called in the pool only if they have enough supporting reads based on the ploidy: locus depth * (1/ploidy) * 0.5.')
+
     return parser.parse_args()
 
 def variant_id(record):
@@ -107,6 +112,43 @@ def is_recovered(alleles_in_probands, alleles_in_pool):
     else:
         return False
 
+def set_read_filter(total_reads_pool, filter_reads = None, ploidy = None,
+                    tech_variation = 0.5, combine_filters = 'strict'):
+    """Set a minimum read depth filter based on either an input value, the ploidy,
+        or a combination of the two.
+    Args:
+        total_reads_pool (int): read depth at this position
+        filter_reads (int): filter variants with less than this many reads
+        ploidy (int): perform variant frequency filter based on this ploidy
+        tech_variation (float): 0 > tech_variation >= 1, ploidy filter will be multiplied
+            by this values
+        combine_filters (str): 'strict': take the maximum if two filters are used, 
+            'lenient': take the minimum if two filters are used
+    Returns:
+        int
+    """
+    if filter_reads or ploidy:
+        min_read_filter_reads = min_read_filter_ploidy = 0
+        if filter_reads:
+            min_read_filter_reads = filter_reads
+        if ploidy:
+            min_read_filter_ploidy = math.trunc(total_reads_pool * (1/ploidy) * tech_variation)
+    if filter_reads and ploidy:
+        if combine_filters == 'strict':
+            min_read_filter = max(min_read_filter_reads, min_read_filter_ploidy)
+        elif combine_filters == 'lenient':
+            min_read_filter = min(min_read_filter_reads, min_read_filter_ploidy)
+        else:
+            raise ValueError("Valid values of combine_filters are 'strict' or 'lenient'. The value '{}' was given.".format(combine_filters))
+    elif filter_reads:
+        min_read_filter = min_read_filter_reads
+    elif ploidy:
+        min_read_filter = min_read_filter_ploidy
+    if min_read_filter < 1:
+        min_read_filter = 1
+
+    return(min_read_filter)
+
 def main():
     # Parse command line arguments
     args = parse_args()
@@ -116,9 +158,11 @@ def main():
 
     outstream = open(outfile, 'w')
 
-    # Write header
-#    outstream.write('variant,nonref_alleles_pool,total_alleles_pool,nonref_alleles_probands,total_alleles_probands,nonref_reads_pool,total_reads_pool,recovered,falsepos,QD,AF_EXOMESgnomad,AF_GENOMESgnomad\n')
-    outstream.write('variant,nonref_alleles_pool,total_alleles_pool,nonref_alleles_probands,total_alleles_probands,nonref_reads_pool,total_reads_pool,recovered_all,falsepos,QD,AF_EXOMESgnomad,AF_GENOMESgnomad,proband,recovered_in_proband\n')
+    # Amount of technical variation to allow when choosing an allele frequency threshold
+    # based on ploidy. I.e. if 0.5, allow half as many reads to call a variant in the pool.
+    tech_variation = 0.5
+
+    outstream.write('variant,nonref_alleles_pool,total_alleles_pool,nonref_alleles_probands,total_alleles_probands,nonref_reads_pool,total_reads_pool,recovered_all,falsepos,QD,AF_EXOMESgnomad,AF_GENOMESgnomad,proband,recovered_in_proband,GT_pool\n')
 
     with open(vcf_file, 'r') as this_vcf:
         vcf_reader = vcf.Reader(this_vcf)
@@ -188,14 +232,17 @@ def main():
             nonref_reads_pool = count_nonref_reads(record.samples[pool_pos])
             total_reads_pool = record.samples[pool_pos]['DP']
 
+            GT_pool = record.samples[pool_pos]['GT']
             alleles_in_pool = get_nonref_alleles(record.samples[pool_pos]['GT'])
             alleles_in_probands = set.union(*[get_nonref_alleles(record.samples[pos]['GT']) for pos in probands_pos])
 
             filtered = 'FALSE'
             falsepos = 'FALSE'
-            if args.filter_reads:
-                # Filter if there are reads in the pool supporting all the alternate alleles
-                min_read_filter = args.filter_reads
+            # Calculate a mininum read filter based on the filter_reads or ploidy_filter
+            # arguments, if given
+            if args.filter_reads or args.ploidy_filter:
+                min_read_filter = set_read_filter(total_reads_pool, args.filter_reads,
+                    args.ploidy_filter, tech_variation) 
                 alleles_in_pool_by_reads = set(alleles_supported(record, pool_pos,
                     min_read_filter, include_ref = False))
                 if is_recovered(alleles_in_probands, alleles_in_pool_by_reads):
@@ -203,6 +250,7 @@ def main():
                 # likely false positive if found in the pool but not in any of the probands
                 if len(alleles_in_pool_by_reads - alleles_in_probands) > 0:
                     falsepos = 'TRUE'
+ 
             else:
                 # Filter if all the variants found in the probands are also found in the pool
                 if is_recovered(alleles_in_probands, alleles_in_pool):
@@ -238,6 +286,7 @@ def main():
                 # Write out the variant (GT for this sample only) to the vcf file for that proband
                 # only if the variant is not found in the parent pool
                 recovered_proband = 'FALSE'
+                
                 if args.filter_reads:
                     if is_recovered(alleles_this_proband, alleles_in_pool_by_reads):
                         recovered_proband = 'TRUE'
@@ -252,7 +301,7 @@ def main():
                 outstream.write(','.join([str(x) for x in [var_id,nonref_alleles_pool,
                     total_alleles_pool,nonref_alleles_probands,total_alleles_probands,
                     nonref_reads_pool,total_reads_pool,filtered,falsepos,QD,
-                    AF_EXOMESgnomad, AF_GENOMESgnomad, proband, recovered_proband]]) + '\n')
+                    AF_EXOMESgnomad, AF_GENOMESgnomad, proband, recovered_proband, GT_pool]]) + '\n')
 
             # If none of the probands have any non-ref alleles at this locus
             # Still report it in the csv for false positives counts
@@ -260,7 +309,7 @@ def main():
                 outstream.write(','.join([str(x) for x in [var_id,nonref_alleles_pool,
                     total_alleles_pool,nonref_alleles_probands,total_alleles_probands,
                     nonref_reads_pool,total_reads_pool,filtered,falsepos,QD,
-                    AF_EXOMESgnomad, AF_GENOMESgnomad, 'NA', 'NA']]) + '\n')
+                    AF_EXOMESgnomad, AF_GENOMESgnomad, 'NA', 'NA', 'NA']]) + '\n')
 
 
 

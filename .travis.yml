@@ -5,8 +5,7 @@ cache: packages
 install:
 - pip install -U .
 script:
-- cd pooledparents
-- python -m pytest test_*.py
+- python -m pytest pooledparents/test_*.py
 after_script:
-- coverage run -m pytest test_*.py
+- coverage run -m pytest pooledparents/test_*.py
 - bash <(curl -s https://codecov.io/bash) -s .

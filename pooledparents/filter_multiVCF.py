@@ -127,6 +127,9 @@ def set_read_filter(total_reads_pool, filter_reads = None, ploidy = None,
     Returns:
         int
     """
+    if total_reads_pool is None:
+        total_reads_pool = 0
+
     if filter_reads or ploidy:
         min_read_filter_reads = min_read_filter_ploidy = 0
         if filter_reads:

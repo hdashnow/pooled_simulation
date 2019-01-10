@@ -14,6 +14,7 @@ def test_set_read_filter_reads(total_reads_pool, filter_reads, expected):
     (100, 10, 1, 10),
     (100, 10, 0.5, 5),
     (10, 1000, 1, 1),
+    (None, 1000, 1, 1),
 ])
 def test_set_read_filter_ploidy(total_reads_pool, ploidy, tech_variation, expected):
     assert set_read_filter(total_reads_pool, filter_reads = None, ploidy = ploidy,

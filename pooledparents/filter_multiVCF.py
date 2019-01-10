@@ -150,6 +150,7 @@ def set_read_filter(total_reads_pool, filter_reads = None, ploidy = None,
     return(min_read_filter)
 
 def main():
+
     # Parse command line arguments
     args = parse_args()
     vcf_file = args.in_vcf
@@ -158,6 +159,8 @@ def main():
 
     outstream = open(outfile, 'w')
 
+    # Settings
+    report_FPs = True
     # Amount of technical variation to allow when choosing an allele frequency threshold
     # based on ploidy. I.e. if 0.5, allow half as many reads to call a variant in the pool.
     tech_variation = 0.5
@@ -287,7 +290,7 @@ def main():
                 # only if the variant is not found in the parent pool
                 recovered_proband = 'FALSE'
                 
-                if args.filter_reads:
+                if args.filter_reads or args.ploidy_filter:
                     if is_recovered(alleles_this_proband, alleles_in_pool_by_reads):
                         recovered_proband = 'TRUE'
                 else:
@@ -305,7 +308,7 @@ def main():
 
             # If none of the probands have any non-ref alleles at this locus
             # Still report it in the csv for false positives counts
-            if nonref_alleles_probands == 0:
+            if report_FPs and nonref_alleles_probands == 0:
                 outstream.write(','.join([str(x) for x in [var_id,nonref_alleles_pool,
                     total_alleles_pool,nonref_alleles_probands,total_alleles_probands,
                     nonref_reads_pool,total_reads_pool,filtered,falsepos,QD,
@@ -316,11 +319,6 @@ def main():
             # Write all samples from all variants to VCF
             # includes FILTER InPool for variants where all alleles in probands are recovered in pool
             vcf_writer.write_record(record)
-
-#            outstream.write(','.join([str(x) for x in [var_id,nonref_alleles_pool,
-#                total_alleles_pool,nonref_alleles_probands,total_alleles_probands,
-#                nonref_reads_pool,total_reads_pool,filtered,falsepos,QD,
-#                AF_EXOMESgnomad, AF_GENOMESgnomad]]) + '\n')
 
 if __name__ == '__main__':
     main()

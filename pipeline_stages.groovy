@@ -397,7 +397,7 @@ compare_joint = {
 
     output.dir="variants"
 
-    from('vcf') produce(input.prefix + '.compare.readfilter.csv', input.prefix + '.compare.readfilter.vcf') {
+    from('vcf') produce(input.prefix + '.compare.csv', input.prefix + '.compare.vcf') {
 
         exec """
             /group/bioi1/harrietd/git/STRetch/tools/bin/python 
@@ -407,7 +407,7 @@ compare_joint = {
                 --probands ${probands.join(' ')}
                 --out_csv $output.csv
                 --out_vcf $output.vcf
-                --filter_reads 1
+                --ploidy $ploidy
         """
     }
 }

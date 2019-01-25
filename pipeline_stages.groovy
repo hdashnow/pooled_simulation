@@ -27,8 +27,6 @@ set_sample_info = {
 set_fastq_info = {
     def info = get_info(input)
 
-    //println(inputs)
-
     //branch.sample = info[0]
 
     if (info.length >= 2) {
@@ -114,7 +112,7 @@ intersect_targets = {
 set_pool = {
     branch.num_samples = branch.name.toInteger()
     branch.ploidy = branch.num_samples*2
-    def all_inputs = "$inputs".split(" ").toList()
+    def all_inputs = "$inputs.bam".split(" ").toList()
 
     var seed : false
     if(!seed)
@@ -131,7 +129,7 @@ set_pool = {
         echo "$pool_samples" > $output.txt
     ""","small"
     // need to check if there are enough input sequences to create pool of this size
-    forward(pool_samples)
+    forward(branch.pool_samples)
     }
 }
 
@@ -151,7 +149,7 @@ downsample_region = {
         if(branch.num_samples > 2) {
             // the integer part (7) is the random seed
             // fractional part is the proprtion of reads to sample
-            DOWNSAMPLE=7 + 2.0/branch.num_samples
+            def DOWNSAMPLE = branch.randomseed + 2.0/branch.num_samples
             exec """
                 samtools view -b -s $DOWNSAMPLE $input.bam > $output.bam
             """

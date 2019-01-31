@@ -376,7 +376,7 @@ compare_sim = {
     from('*.vcf') produce('pooled_sim_compare.csv', 'pooled_sim_compare_falsepos.csv') {
 
         exec """
-            /group/bioi1/harrietd/git/STRetch/tools/bin/python /group/bioi1/harrietd/git/pooled_simulation/compare_sim_vcf.py --individual_vcfs /group/bioi1/harrietd/pooled-parent/pooled_simulation2/simplex/individuals/variants/SRR???????.vcf --pool_vcfs $inputs.vcf --pool_specs $inputs.txt --output $output1.csv --falsepos $output2.csv
+            /group/bioi1/harrietd/git/STRetch/tools/bin/python /group/bioi1/harrietd/git/pooled_simulation/pooledparents/filter_individualVCF.py --individual_vcfs /group/bioi1/harrietd/pooled-parent/pooled_simulation2/simplex/individuals/variants/SRR???????.vcf --pool_vcfs $inputs.vcf --pool_specs $inputs.txt --output $output1.csv --falsepos $output2.csv
     """
     }
 }

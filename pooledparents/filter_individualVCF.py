@@ -42,15 +42,19 @@ def sample_id_from_fname(fname):
     return(sample_id)
 
 def parse_pool_specs(spec_files):
+    """ Expecting file contents in the form:
+    [/my/dir/sample1.bam, /my/dir/sample2.bam]
+    """
     pool_specs = {}
     for spec_file in spec_files:
         with open(spec_file) as f:
             samples_txt = f.read()
-            pool_id = spec_file.split('.')[-2].lstrip('/')
+            pool_id = sample_id_from_fname(spec_file)
             samples = []
             for sample_txt in samples_txt.split(', '):
                 sample_bam = sample_txt.lstrip().rstrip().lstrip('[').rstrip(']')
                 sample_id = sample_id_from_fname(sample_bam)
+
                 samples.append(sample_id)
             pool_specs[pool_id] = samples
     return(pool_specs)

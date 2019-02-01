@@ -4,6 +4,15 @@ import glob
 
 pytest_plugins = ["pytester"]
 
+def test_count_nonref_reads():
+    pass
+    
+def test_alleles_supported():
+    pass
+    
+def test_is_recovered():
+    pass
+
 @pytest.mark.parametrize("total_reads_pool,filter_reads,expected", [
     (100, 10, 10),
     (1, 1, 1),

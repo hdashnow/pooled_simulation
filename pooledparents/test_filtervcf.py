@@ -1,6 +1,9 @@
 from filtervcf import *
 import pytest
 
+def test_variant_id():
+    pass
+
 @pytest.mark.parametrize("fname, expected", [
     ('test.bam', 'test'),
 ])
@@ -16,3 +19,6 @@ def test_sample_id_from_fname(fname, expected):
 ])
 def test_count_nonref_alleles(GT_string, expected):
     assert count_nonref_alleles(GT_string) == expected
+
+
+

@@ -32,11 +32,6 @@ def parse_args():
         help='Output file name for assumed false positives. Defaults to pooled_sim_variants_falsepos.csv.')
     return parser.parse_args()
 
-def variant_id(record):
-    ALTstr = '/'.join([str(x) for x in record.ALT]) # join ALT loci
-    POSstr = '{0:09d}'.format(record.POS) # add leading 0s
-    return '_'.join([str(x) for x in [record.CHROM, POSstr, record.REF, ALTstr]])
-
 def parse_pool_specs(spec_files):
     """ Expecting file contents in the form:
     [/my/dir/sample1.bam, /my/dir/sample2.bam]

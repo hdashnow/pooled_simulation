@@ -1,0 +1,1 @@
+[/group/bioi1/harrietd/pooled-parent/pooled_simulation2/simplex/individuals/align/SRR1301861.bam, /group/bioi1/harrietd/pooled-parent/pooled_simulation2/simplex/individuals/align/SRR1301698.bam]

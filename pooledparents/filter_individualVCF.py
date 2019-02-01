@@ -3,6 +3,8 @@ import sys
 import vcf
 import os
 from collections import Counter
+# shared functions
+from filtervcf import *
 
 __author__ = "Harriet Dashnow"
 __credits__ = ["Harriet Dashnow"]
@@ -34,12 +36,6 @@ def variant_id(record):
     ALTstr = '/'.join([str(x) for x in record.ALT]) # join ALT loci
     POSstr = '{0:09d}'.format(record.POS) # add leading 0s
     return '_'.join([str(x) for x in [record.CHROM, POSstr, record.REF, ALTstr]])
-
-def sample_id_from_fname(fname):
-    sample_id = os.path.basename(fname).split('.')[0]
-    if sample_id == 'merge':
-        sample_id = os.path.basename(fname).split('.')[1]
-    return(sample_id)
 
 def parse_pool_specs(spec_files):
     """ Expecting file contents in the form:

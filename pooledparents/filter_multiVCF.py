@@ -6,6 +6,8 @@ import os
 from collections import Counter
 import copy
 import math
+# shared functions
+from filtervcf import *
 
 __author__ = "Harriet Dashnow"
 __credits__ = ["Harriet Dashnow"]
@@ -42,12 +44,6 @@ def parse_args():
         help='The ploidy of the pooled sample (i.e. 2*number of samples in the pool). If provided, allow variants to called in the pool only if they have enough supporting reads based on the ploidy: locus depth * (1/ploidy) * 0.5.')
 
     return parser.parse_args()
-
-def variant_id(record):
-    """Create a unique ID for each variant so they can be compared"""
-    ALTstr = '/'.join([str(x) for x in record.ALT]) # join ALT loci
-    POSstr = '{0:09d}'.format(record.POS) # add leading 0s
-    return '_'.join([str(x) for x in [record.CHROM, POSstr, record.REF, ALTstr]])
 
 def sample_id_from_fname(fname):
     """Extract same id from filename"""

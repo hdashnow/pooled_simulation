@@ -6,12 +6,16 @@ pytest_plugins = ["pytester"]
 
 def test_count_nonref_reads():
     pass
-    
+
 def test_alleles_supported():
     pass
-    
-def test_is_recovered():
-    pass
+
+@pytest.mark.parametrize("alleles_in_probands, alleles_in_pool, expected", [
+    ([1], [1], True),
+    ([1, 2], [1], False),
+])
+def test_is_recovered(alleles_in_probands, alleles_in_pool, expected):
+    assert is_recovered(alleles_in_probands, alleles_in_pool) == expected
 
 @pytest.mark.parametrize("total_reads_pool,filter_reads,expected", [
     (100, 10, 10),

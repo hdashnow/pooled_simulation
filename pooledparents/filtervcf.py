@@ -26,7 +26,8 @@ def sample_id_from_fname(fname):
     return(sample_id)
 
 def count_nonref_alleles(GT_string):
-    """Count the number of non-reference alleles from a VCF genotype (GT) string"""
+    """Count the number of non-reference alleles from a VCF genotype (GT) string
+    Returns the number of non-ref alleles and the total number of alleles"""
     alleles = GT_string.split('/')
     alleles = [allele for allele in alleles if allele != '.'] # remove missing genotypes
     total_alleles = len(alleles)

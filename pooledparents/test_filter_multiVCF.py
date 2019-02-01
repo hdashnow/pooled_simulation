@@ -2,7 +2,7 @@ from filter_multiVCF import *
 import pytest
 import glob
 
-#pytest_plugins = ["pytester"]
+pytest_plugins = ["pytester"]
 
 @pytest.mark.parametrize("total_reads_pool,filter_reads,expected", [
     (100, 10, 10),

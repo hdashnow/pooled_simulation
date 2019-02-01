@@ -55,11 +55,6 @@ def parse_pool_specs(spec_files):
             pool_specs[pool_id] = samples
     return(pool_specs)
 
-def count_nonref_alleles(GT_string):
-    alleles = GT_string.split('/')
-    nonref_allele_count = len(alleles) - sum([allele == "0" for allele in alleles])
-    return(nonref_allele_count)
-
 def main():
     # Parse command line arguments
     args = parse_args()
@@ -97,7 +92,7 @@ def main():
                 var_id = variant_id(record)
                 individual_vars[sample_id].add(var_id)
 
-                nonref_allele_count = count_nonref_alleles(record.samples[0]['GT'])
+                nonref_allele_count, _total_alleles = count_nonref_alleles(record.samples[0]['GT'])
 
                 for pool in pools_sample_is_in:
                     if var_id not in pooled_individual_vars[pool]:
@@ -123,7 +118,7 @@ def main():
                 var_id = variant_id(record)
                 pool_vars[pool].add(var_id)
 
-                nonref_allele_count = count_nonref_alleles(record.samples[0]['GT'])
+                nonref_allele_count, _total_alleles = count_nonref_alleles(record.samples[0]['GT'])
                 nonref_allele_counts[var_id] = nonref_allele_count
    
                 if var_id not in pool_var_counts[pool]:

@@ -23,13 +23,6 @@ def test_parse_pool_specs(tmpdir):
     expected = "{'2': ['sample1', 'sample2'], '4': ['sample1', 'sample2', 'sample3', 'sample4']}"
     assert str(parse_pool_specs(spec_files)) == expected
 
-@pytest.mark.parametrize("GT_string, expected", [
-    ('0/0', 0),
-])
-def test_count_nonref_alleles(GT_string, expected):
-    assert count_nonref_alleles(GT_string) == expected
-
-
 @pytest.fixture
 def my_run(testdir, scriptdir = '.'):
     def do_run(*args, scriptdir):

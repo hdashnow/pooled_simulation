@@ -52,14 +52,6 @@ def sample_id_from_fname(fname):
         sample_id = os.path.basename(fname).split('.')[1]
     return(sample_id)
 
-def count_nonref_alleles(GT_string):
-    """Count the number of non-reference alleles from a VCF genotype (GT) string"""
-    alleles = GT_string.split('/')
-    alleles = [allele for allele in alleles if allele != '.'] # remove missing genotypes
-    total_alleles = len(alleles)
-    nonref_allele_count = total_alleles - sum([allele == "0" for allele in alleles])
-    return(nonref_allele_count, total_alleles)
-
 def count_nonref_reads(record_sample):
     """Count the number of reads supporting all non-reference alleles"""
     allelic_depths = record_sample['AD']

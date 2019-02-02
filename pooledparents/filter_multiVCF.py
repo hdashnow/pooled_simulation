@@ -45,13 +45,6 @@ def parse_args():
 
     return parser.parse_args()
 
-def sample_id_from_fname(fname):
-    """Extract same id from filename"""
-    sample_id = os.path.basename(fname).split('.')[0]
-    if sample_id == 'merge':
-        sample_id = os.path.basename(fname).split('.')[1]
-    return(sample_id)
-
 def count_nonref_reads(record_sample):
     """Count the number of reads supporting all non-reference alleles"""
     allelic_depths = record_sample['AD']
@@ -75,19 +68,6 @@ def alleles_supported(record, sample_pos, n, include_ref = True):
         allelic_depths = allelic_depths[1:]
     supported_alleles = [all_alleles[i] for i in range(len(all_alleles)) if allelic_depths[i] >= n]
     return(supported_alleles)
-
-def get_nonref_alleles(GT_string):
-    """Take a VCF genotype (GT) string and return a set containing all non-reference alleles"""
-    alleles = set(GT_string.split('/'))
-    try:
-        alleles.remove('.') # remove missing genotypes
-    except KeyError:
-        pass
-    try:
-        alleles.remove('0') # remove reference alleles
-    except KeyError:
-        pass
-    return(alleles)
 
 def is_recovered(alleles_in_probands, alleles_in_pool):
     """Filter if all the variants found in the proband(s) are also found in the pool.

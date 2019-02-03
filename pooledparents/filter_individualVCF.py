@@ -25,11 +25,15 @@ def parse_args():
         '--pool_specs', type=str, required=True, nargs='+',
         help='One or more text files specifying the bam files used for the simulated pools. Names must correspond to the vcf names in --pool_vcfs')
     parser.add_argument(
-        '--output', type=str, required=False,
-        help='Output file name. Defaults to stdout. Output is in csv format.')
+        '--out_csv', type=str, required=False, default='pools_probands.compare.csv',
+        help='Output filename for csv (default: %(default)s)')
     parser.add_argument(
         '--falsepos', action='store_true',
         help='Report false positives as additional lines in the output csv.')
+    parser.add_argument(
+        '--tech_variation', type=float, default=0.5,
+        help='Amount of technical variation to allow when choosing an allele frequency threshold based on ploidy. I.e. if 0.5, allow half as many reads to call a variant in the pool.')
+
     return parser.parse_args()
 
 def parse_pool_specs(spec_files):
@@ -56,17 +60,17 @@ def main():
     individual_vcf_files = args.individual_vcfs
     pool_vcf_files = args.pool_vcfs
     pool_spec_files = args.pool_specs
-    outfile = args.output
+    outfile = args.out_csv
+    report_FPs = args.falsepos
+    tech_variation = args.tech_variation
 
-    if outfile:
-        outstream = open(outfile, 'w')
-    else:
-        outstream = sys.stdout
+    outstream = open(outfile, 'w')
+
+    outstream.write('variant,nonref_alleles_pool,total_alleles_pool,nonref_alleles_probands,total_alleles_probands,nonref_reads_pool,total_reads_pool,recovered_all,falsepos,QD,AF_EXOMESgnomad,AF_GENOMESgnomad,proband,recovered_in_proband,GT_pool\n')
 
     pool_specs = parse_pool_specs(pool_spec_files)
-#    print(pool_specs)
 
-    # Parse vcfs on individuals
+    # Parse vcfs of individuals
     individual_vars = {}
     pooled_individual_vars = {} # {pool : { variant_id: non-ref count } }
     for pool in pool_specs:

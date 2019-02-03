@@ -38,7 +38,7 @@ def test_end2end(tmpdir, my_run, additional_args, exit_status):
     result = my_run("--individual_vcfs", *glob.glob(datadir+"SRR???????.vcf"),
                     "--pool_vcfs", datadir+"merge.2.RGfixed.dedup.vcf",
                     "--pool_specs", datadir+"2.txt",
-                    "--output", output,
+                    "--out_csv", output,
                     *additional_args,
                     scriptdir = dir_this_file)
     assert result.ret == exit_status

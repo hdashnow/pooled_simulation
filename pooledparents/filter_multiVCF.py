@@ -41,6 +41,12 @@ def parse_args():
     parser.add_argument(
         '--ploidy_filter', type=int, required=False,
         help='The ploidy of the pooled sample (i.e. 2*number of samples in the pool). If provided, allow variants to called in the pool only if they have enough supporting reads based on the ploidy: locus depth * (1/ploidy) * 0.5.')
+    parser.add_argument(
+        '--falsepos', action='store_true',
+        help='Report false positives as additional lines in the output csv.')
+    parser.add_argument(
+        '--tech_variation', type=float, default=0.5,
+        help='Amount of technical variation to allow when choosing an allele frequency threshold based on ploidy. I.e. if 0.5, allow half as many reads to call a variant in the pool.')
 
     return parser.parse_args()
 
@@ -51,14 +57,10 @@ def main():
     vcf_file = args.in_vcf
     outfile = args.out_csv
     out_vcf = args.out_vcf
+    report_FPs = args.falsepos
+    tech_variation = args.tech_variation
 
     outstream = open(outfile, 'w')
-
-    # Settings
-    report_FPs = True
-    # Amount of technical variation to allow when choosing an allele frequency threshold
-    # based on ploidy. I.e. if 0.5, allow half as many reads to call a variant in the pool.
-    tech_variation = 0.5
 
     outstream.write('variant,nonref_alleles_pool,total_alleles_pool,nonref_alleles_probands,total_alleles_probands,nonref_reads_pool,total_reads_pool,recovered_all,falsepos,QD,AF_EXOMESgnomad,AF_GENOMESgnomad,proband,recovered_in_proband,GT_pool\n')
 

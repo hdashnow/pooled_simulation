@@ -1,14 +1,44 @@
 from filter_multiVCF import *
 import pytest
 import glob
+import vcf
 
 pytest_plugins = ["pytester"]
 
-def test_count_nonref_reads():
-    pass
+@pytest.mark.parametrize("position, expected", [
+    (69270, 7),
+    (26083991, 89 + 27),
+    (1560964, 0),
+])
+def test_count_nonref_reads(position, expected):
+    dir_this_file = os.path.dirname(os.path.realpath(__file__)) + '/'
+    datadir = dir_this_file + "test_data/"
+    vcf_file = datadir + "merge.2.pools_probands.vcf"
+    with open(vcf_file, 'r') as this_vcf:
+        vcf_reader = vcf.Reader(this_vcf)
+        for record in vcf_reader:
+            if record.POS == position:
+                nonref_reads = count_nonref_reads(record.samples[0])
+                assert nonref_reads == expected
 
-def test_alleles_supported():
-    pass
+@pytest.mark.parametrize("position, min_read_filter, include_ref, expected", [
+    (69270, 1, True, ['1']),
+    (69270, 1, False, ['1']),
+    (69270, 10, True, []),
+    (26083991, 1, True, ['0', '1', '2']),
+    (26083991, 1, False, ['1', '2']),
+])
+def test_alleles_supported(position, min_read_filter, include_ref, expected):
+    dir_this_file = os.path.dirname(os.path.realpath(__file__)) + '/'
+    datadir = dir_this_file + "test_data/"
+    vcf_file = datadir + "merge.2.pools_probands.vcf"
+    with open(vcf_file, 'r') as this_vcf:
+        vcf_reader = vcf.Reader(this_vcf)
+        for record in vcf_reader:
+            if record.POS == position:
+                alleles_by_reads = alleles_supported(record, 0,
+                                    min_read_filter, include_ref)
+                assert alleles_by_reads == expected
 
 @pytest.mark.parametrize("alleles_in_probands, alleles_in_pool, expected", [
     ([1], [1], True),

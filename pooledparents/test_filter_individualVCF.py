@@ -6,9 +6,6 @@ import glob
 
 pytest_plugins = ["pytester"]
 
-def test_variant_id():
-    pass
-
 def test_parse_pool_specs(tmpdir):
     filename1 = tmpdir + '/2.txt'
     contents1 = '[/my/dir/sample1.bam, /my/dir/sample2.bam]'

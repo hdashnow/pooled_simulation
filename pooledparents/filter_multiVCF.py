@@ -58,7 +58,8 @@ def alleles_supported(record, sample_pos, n, include_ref = True):
         n (int): return allele if it is supported by at least n reads
         include_ref (bool): if True, return the reference allele if it is supported by n reads
     Returns:
-        list of alleles that are supported by at least n reads (strings)
+        list of numeric positions of alleles that are supported by at least n reads (strings)
+        i.e. ref = '0', first nonref = '1'
     """
     # Get numeric representation of the alleles i.e. ref = 0, first alt = 1
     all_alleles = [str(x) for x in range(len(record.alleles))]

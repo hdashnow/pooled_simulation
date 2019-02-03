@@ -9,8 +9,7 @@ load 'pipeline_stages.groovy'
 // Settings
 EXOME_TARGET="/group/bioi1/shared/genomes/hg19/exome_targets/NIMBLEGENV2.bed"
 
-//sample_pools = [2, 4, 6, 8]
-sample_pools = [2, 4, 6, 8, 10]
+sample_pools = [2, 4, 6, 8, 10, 20, 40]
 
 // Required for set_joint stage
 proband_gvcfs = args.grep(~/.*gvcf$/)

@@ -27,7 +27,11 @@ def my_run(testdir, scriptdir = '.'):
         return testdir.run(*args)
     return do_run
 
-def test_end2end(tmpdir, my_run):
+@pytest.mark.parametrize("additional_args, exit_status", [
+    ([], 0),
+    (['--falsepos'], 0),
+])
+def test_end2end(tmpdir, my_run, additional_args, exit_status):
     dir_this_file = os.path.dirname(os.path.realpath(__file__)) + '/'
     datadir = dir_this_file + "test_data/"
     output = "pooled_sim_compare.csv"
@@ -35,8 +39,8 @@ def test_end2end(tmpdir, my_run):
                     "--pool_vcfs", datadir+"merge.2.RGfixed.dedup.vcf",
                     "--pool_specs", datadir+"2.txt",
                     "--output", output,
-                    "--falsepos", 'falsepos.csv',
+                    *additional_args,
                     scriptdir = dir_this_file)
-    assert result.ret == 0
+    assert result.ret == exit_status
     with open(output, "r") as f:
         newcontent = f.read()

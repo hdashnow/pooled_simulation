@@ -14,7 +14,7 @@ __email__ = "h.dashnow@gmail.com"
 
 def parse_args():
     """Parse the input arguments, use '-h' for help"""
-    parser = argparse.ArgumentParser(description='Filter proband vcfs based on pooled partent vcf')
+    parser = argparse.ArgumentParser(description='Filter proband vcfs based on a pooled parent vcf and report recall per variant')
     parser.add_argument(
         '--individual_vcfs', type=str, required=True, nargs='+',
         help='One or more vcfs containing variant calls from individuals used to simulate the pools')
@@ -26,10 +26,10 @@ def parse_args():
         help='One or more text files specifying the bam files used for the simulated pools. Names must correspond to the vcf names in --pool_vcfs')
     parser.add_argument(
         '--output', type=str, required=False,
-        help='Output file name. Defaults to stdout.')
+        help='Output file name. Defaults to stdout. Output is in csv format.')
     parser.add_argument(
-        '--falsepos', type=str, required=False, default='pooled_sim_variants_falsepos.csv',
-        help='Output file name for assumed false positives. Defaults to pooled_sim_variants_falsepos.csv.')
+        '--falsepos', action='store_true',
+        help='Report false positives as additional lines in the output csv.')
     return parser.parse_args()
 
 def parse_pool_specs(spec_files):
@@ -57,7 +57,6 @@ def main():
     pool_vcf_files = args.pool_vcfs
     pool_spec_files = args.pool_specs
     outfile = args.output
-    falsepos_file = args.falsepos
 
     if outfile:
         outstream = open(outfile, 'w')
@@ -143,26 +142,28 @@ def main():
         
     outstream.close()
 
-    outstream = open(falsepos_file, "w")
-    header = 'pool,variant,nonref_allele_count_truth,nonref_allele_count_obs,false_positive\n'
-    outstream.write(header)
-    for pool in pooled_individual_vars:
-        for variant in pool_vars[pool]:
-            if variant in pooled_individual_vars[pool]:
-                falsepos = "FALSE"
-            else:
-                falsepos = "TRUE"
-            nonref_allele_count_obs = pool_var_counts[pool][variant] 
-            try:
-                nonref_allele_count_truth = pooled_individual_vars[pool][variant]
-            except KeyError:
-                nonref_allele_count_truth = 'NA'
-            outstream.write('{},{},{},{},{}\n'.format(pool,
-                variant,
-                nonref_allele_count_truth,
-                nonref_allele_count_obs,
-                falsepos))
-    outstream.close
+    if args.falsepos:
+        falsepos_file = 'falsepos_test.csv'
+        outstream = open(falsepos_file, "w")
+        header = 'pool,variant,nonref_allele_count_truth,nonref_allele_count_obs,false_positive\n'
+        outstream.write(header)
+        for pool in pooled_individual_vars:
+            for variant in pool_vars[pool]:
+                if variant in pooled_individual_vars[pool]:
+                    falsepos = "FALSE"
+                else:
+                    falsepos = "TRUE"
+                nonref_allele_count_obs = pool_var_counts[pool][variant] 
+                try:
+                    nonref_allele_count_truth = pooled_individual_vars[pool][variant]
+                except KeyError:
+                    nonref_allele_count_truth = 'NA'
+                outstream.write('{},{},{},{},{}\n'.format(pool,
+                    variant,
+                    nonref_allele_count_truth,
+                    nonref_allele_count_obs,
+                    falsepos))
+        outstream.close
     # For each pool, check how many variants were found and record their nonref_allele_count
 #    for pool in pooled_individual_vars:
 #        recovered_vars = [var for var in pooled_individual_vars[pool] if var in pool_vars[pool]]

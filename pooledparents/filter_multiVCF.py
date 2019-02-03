@@ -5,7 +5,6 @@ from vcf.parser import _Filter
 import os
 from collections import Counter
 import copy
-import math
 # shared functions
 from filtervcf import *
 

@@ -44,3 +44,77 @@ def test_count_nonref_alleles(GT_string, expected):
 ])
 def test_get_nonref_alleles(GT_string, expected):
     assert get_nonref_alleles(GT_string) == expected
+
+@pytest.mark.parametrize("position, expected", [
+    (69270, 7),
+    (26083991, 89 + 27),
+    (1560964, 0),
+])
+def test_count_nonref_reads(position, expected):
+    dir_this_file = os.path.dirname(os.path.realpath(__file__)) + '/'
+    datadir = dir_this_file + "test_data/"
+    vcf_file = datadir + "merge.2.pools_probands.vcf"
+    with open(vcf_file, 'r') as this_vcf:
+        vcf_reader = vcf.Reader(this_vcf)
+        for record in vcf_reader:
+            if record.POS == position:
+                nonref_reads = count_nonref_reads(record.samples[0])
+                assert nonref_reads == expected
+
+@pytest.mark.parametrize("position, min_read_filter, include_ref, expected", [
+    (69270, 1, True, ['1']),
+    (69270, 1, False, ['1']),
+    (69270, 10, True, []),
+    (26083991, 1, True, ['0', '1', '2']),
+    (26083991, 1, False, ['1', '2']),
+])
+def test_alleles_supported(position, min_read_filter, include_ref, expected):
+    dir_this_file = os.path.dirname(os.path.realpath(__file__)) + '/'
+    datadir = dir_this_file + "test_data/"
+    vcf_file = datadir + "merge.2.pools_probands.vcf"
+    with open(vcf_file, 'r') as this_vcf:
+        vcf_reader = vcf.Reader(this_vcf)
+        for record in vcf_reader:
+            if record.POS == position:
+                alleles_by_reads = alleles_supported(record, 0,
+                                    min_read_filter, include_ref)
+                assert alleles_by_reads == expected
+
+@pytest.mark.parametrize("alleles_in_probands, alleles_in_pool, expected", [
+    ([1], [1], True),
+    ([1, 2], [1], False),
+])
+def test_is_recovered(alleles_in_probands, alleles_in_pool, expected):
+    assert is_recovered(alleles_in_probands, alleles_in_pool) == expected
+
+@pytest.mark.parametrize("total_reads_pool,filter_reads,expected", [
+    (100, 10, 10),
+    (1, 1, 1),
+    (1, 5, 5), #should probably throw error
+    #(100, 0, 1), #should throw error
+])
+def test_set_read_filter_reads(total_reads_pool, filter_reads, expected):
+    assert set_read_filter(total_reads_pool, filter_reads = filter_reads) == expected
+
+@pytest.mark.parametrize("total_reads_pool, ploidy, tech_variation, expected", [
+    (100, 10, 1, 10),
+    (100, 10, 0.5, 5),
+    (10, 1000, 1, 1),
+    (None, 1000, 1, 1),
+])
+def test_set_read_filter_ploidy(total_reads_pool, ploidy, tech_variation, expected):
+    assert set_read_filter(total_reads_pool, filter_reads = None, ploidy = ploidy,
+        tech_variation = tech_variation) == expected
+
+@pytest.mark.parametrize("total_reads_pool, filter_reads, ploidy, tech_variation, combine_filters, expected", [
+    (100, 1, 10, 1, "strict", 10),
+    (100, 1, 10, 1, "lenient", 1),
+])
+def test_set_read_filter_both(total_reads_pool, filter_reads, ploidy, tech_variation,
+                            combine_filters, expected):
+    assert set_read_filter(total_reads_pool, filter_reads = filter_reads, ploidy = ploidy,
+        tech_variation = tech_variation, combine_filters = combine_filters) == expected
+
+def test_set_read_filter_wrongargs():
+    with pytest.raises(ValueError):
+        set_read_filter(10, filter_reads = 1, ploidy = 2, tech_variation = 0.5, combine_filters = 'max')

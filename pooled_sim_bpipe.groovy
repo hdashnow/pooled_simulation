@@ -17,7 +17,7 @@ run {
             downsample_region
         ] + merge_bams + fix_header +
         dedup +
-        call_variants +
+        call_variants
 //        filter_vcf_qual
 //        compress_vcf + index_vcf + 
 //        cleanup

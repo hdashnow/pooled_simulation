@@ -98,9 +98,6 @@ def main():
                     else:
                         pooled_individual_vars[pool][var_id] += nonref_allele_count
 
-                #if var_id not in pool_vars:
-                #    vcf_writer.write_record(record)
-
     # Parse vcfs for pools
     pool_vars = {}
     pool_var_counts = {}
@@ -168,29 +165,6 @@ def main():
                     nonref_allele_count_obs,
                     falsepos))
         outstream.close
-    # For each pool, check how many variants were found and record their nonref_allele_count
-#    for pool in pooled_individual_vars:
-#        recovered_vars = [var for var in pooled_individual_vars[pool] if var in pool_vars[pool]]
-#        recovered_allele_counts = [pooled_individual_vars[pool][var] for var in recovered_vars]
-#        total_allele_counts = [pool_var_counts[pool][var] for var in pool_var_counts[pool]]
-#        n_total = len(pool_vars[pool])
-#        n_recovered = len(recovered_vars)
-#        print()
-#        print('Pool:', pool)
-#        print(n_total, 'variants')
-#        print(n_recovered, 'recovered')
-#        print('{:05.2f}% recovered'.format(100*n_recovered/n_total))
-#        print('Non-ref allele count for all variants in pool')
-#        print(Counter(total_allele_counts))
-#        print('Non-ref allele count for recovered variants in pool')
-#        print(Counter(recovered_allele_counts))
-#
-#    for sample_id in individual_vars:
-#        print()
-#        print('Individual:', sample_id)
-#        n_unfiltered = len(individual_vars[sample_id])
-#        print(n_unfiltered, 'variants before filtering')
-#                   
 
 if __name__ == '__main__':
     main()

@@ -118,3 +118,44 @@ def test_set_read_filter_both(total_reads_pool, filter_reads, ploidy, tech_varia
 def test_set_read_filter_wrongargs():
     with pytest.raises(ValueError):
         set_read_filter(10, filter_reads = 1, ploidy = 2, tech_variation = 0.5, combine_filters = 'max')
+
+@pytest.mark.parametrize("pool_name, all_vcf_samples, expected", [
+    (None, ['proband1', 'proband2', 'pool'], 'pool'),
+    ('pool', ['proband1', 'pool', 'proband2'], 'pool'),
+])
+def test_check_pool_name(pool_name, all_vcf_samples, expected):
+    assert check_pool_name(pool_name, all_vcf_samples) == expected
+
+def test_check_pool_name_error():
+    with pytest.raises(KeyError):
+        assert check_pool_name('other', ['proband1', 'pool', 'proband2'])
+
+def test_check_proband_names():
+    pass
+
+@pytest.mark.parametrize("proband_names, all_vcf_samples, expected", [
+    (None, ['proband1', 'proband2', 'pool'], ['proband1', 'proband2']),
+    (['proband1', 'proband2'], ['proband1', 'pool', 'proband2'], ['proband1', 'proband2']),
+])
+def test_check_proband_names(proband_names, all_vcf_samples, expected):
+    assert check_proband_names(proband_names, all_vcf_samples) == expected
+
+def test_check_proband_names_error():
+    with pytest.raises(KeyError):
+        assert check_proband_names(['some', 'other'], ['proband1', 'pool', 'proband2'])
+
+@pytest.mark.parametrize("position, field, expected", [
+    (69270, 'AF_EXOMESgnomad', 'NA'),
+    (26083991, 'AF_GENOMESgnomad', 'NA'),
+    (1560964, 'other', 'NA'),
+])
+def test_extract_record_info(position, field, expected):
+    dir_this_file = os.path.dirname(os.path.realpath(__file__)) + '/'
+    datadir = dir_this_file + "test_data/"
+    vcf_file = datadir + "merge.2.pools_probands.vcf" #XXX this test file isn't annotated, replace
+    with open(vcf_file, 'r') as this_vcf:
+        vcf_reader = vcf.Reader(this_vcf)
+        for record in vcf_reader:
+            if record.POS == position:
+                assert extract_record_info(record, field) == expected
+

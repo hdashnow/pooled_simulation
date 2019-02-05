@@ -72,25 +72,12 @@ def main():
         # Create vcf writer based on the header from the input vcf
         vcf_writer = vcf.Writer(open(out_vcf, 'w'), vcf_reader)
 
-        all_vcf_samples = vcf_reader.samples
         # Fetch sample names
-        if args.pool:
-            pool_name = args.pool
-            if pool_name not in all_vcf_samples:
-                sys.exit('ERROR: Specified pool name "{}" was not found in the VCF. Samples in the VCF include: {}'.format(pool_name, ', '.join(all_vcf_samples)))
-        else:
-            sys.stderr.write('WARNING: Pool name not given, inferred to be last sample in VCF.\n')
-            pool_name = all_vcf_samples[-1]
-        if args.probands:
-            proband_names = args.probands
-            for proband in proband_names:
-                if proband not in all_vcf_samples:
-                    sys.exit('ERROR: Specified proband name "{}" was not found in the VCF. Samples in the VCF include: {}'.format(proband, ', '.join(all_vcf_samples)))
-        else:
-            sys.stderr.write('WARNING: Proband names not given, inferred to be all but the last sample in VCF.\n')
-            proband_names = all_vcf_samples[:-1]
+        all_vcf_samples = vcf_reader.samples
+        pool_name = check_pool_name(args.pool, all_vcf_samples)
+        proband_names = check_proband_names(args.probands, all_vcf_samples)
         sys.stderr.write('Pool name: {0}\nProband names: {1}\n'.format(pool_name,
-            ', '.join(proband_names)))
+                        ', '.join(proband_names)))
         pool_size = len(proband_names)
         pool_pos = all_vcf_samples.index(pool_name)
         probands_pos = [all_vcf_samples.index(proband) for proband in proband_names]
@@ -105,24 +92,9 @@ def main():
         vcf_reader.samples = all_vcf_samples
 
         for record in vcf_reader:
-
             # Extract gnomad allele frequency data if available
-            try:
-                AF_EXOMESgnomad = record.INFO['AF_EXOMESgnomad']
-                if len(AF_EXOMESgnomad) == 1:
-                    AF_EXOMESgnomad = AF_EXOMESgnomad[0]
-                else:
-                    AF_EXOMESgnomad = 'NA' # throw away gnomad data at multiallelic sites
-            except KeyError:
-                AF_EXOMESgnomad = 'NA'
-            try:
-                AF_GENOMESgnomad = record.INFO['AF_GENOMESgnomad']
-                if len(AF_GENOMESgnomad) == 1:
-                    AF_GENOMESgnomad = AF_GENOMESgnomad[0]
-                else:
-                    AF_GENOMESgnomad = 'NA'
-            except KeyError:
-                AF_GENOMESgnomad = 'NA'
+            AF_EXOMESgnomad = extract_record_info(record, 'AF_EXOMESgnomad')
+            AF_GENOMESgnomad = extract_record_info(record, 'AF_GENOMESgnomad')
 
             var_id = variant_id(record)
             nonref_alleles_pool, total_alleles_pool = count_nonref_alleles(record.samples[pool_pos]['GT'])

@@ -1,5 +1,6 @@
 import os
 import math
+import sys
 
 __author__ = "Harriet Dashnow"
 __credits__ = ["Harriet Dashnow"]
@@ -118,3 +119,32 @@ def set_read_filter(total_reads_pool, filter_reads = None, ploidy = None,
 
     return(min_read_filter)
 
+def check_pool_name(pool_name, all_vcf_samples):
+    if pool_name:
+        if pool_name not in all_vcf_samples:
+            raise KeyError('ERROR: Specified pool name "{}" was not found in the VCF. Samples in the VCF include: {}'.format(pool_name, ', '.join(all_vcf_samples)))
+    else:
+        sys.stderr.write('WARNING: Pool name not given, inferred to be last sample in VCF.\n')
+        pool_name = all_vcf_samples[-1]
+    return pool_name
+
+def check_proband_names(proband_names, all_vcf_samples):
+    if proband_names:
+        for proband in proband_names:
+            if proband not in all_vcf_samples:
+                raise KeyError('ERROR: Specified proband name "{}" was not found in the VCF. Samples in the VCF include: {}'.format(proband, ', '.join(all_vcf_samples)))
+    else:
+        sys.stderr.write('WARNING: Proband names not given, inferred to be all but the last sample in VCF.\n')
+        proband_names = all_vcf_samples[:-1]
+    return proband_names
+
+def extract_record_info(record, field):
+    try:
+        info = record.INFO[field]
+        if len(info) == 1:
+            info = info[0]
+        else:
+            info = 'NA' # throw away gnomad data at multiallelic sites
+        return info
+    except KeyError:
+        return 'NA'

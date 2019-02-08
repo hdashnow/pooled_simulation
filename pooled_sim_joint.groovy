@@ -28,6 +28,6 @@ run {
         set_joint +
         combine_gvcfs +
         joint_calling +
-        compare_joint
+        [compare_joint, compare_joint_readfilter]
     ]
 }

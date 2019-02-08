@@ -62,7 +62,7 @@ def main():
 
     outstream = open(outfile, 'w')
 
-    outstream.write('variant,nonref_alleles_pool,total_alleles_pool,nonref_alleles_probands,total_alleles_probands,nonref_reads_pool,total_reads_pool,recovered_all,falsepos,QD,AF_EXOMESgnomad,AF_GENOMESgnomad,proband,recovered_in_proband,GT_pool\n')
+    outstream.write('variant,nonref_alleles_pool,total_alleles_pool,nonref_alleles_probands,total_alleles_probands,nonref_reads_pool,total_reads_pool,nonref_reads_probands,recovered_all,falsepos,QD,AF_EXOMESgnomad,AF_GENOMESgnomad,proband,recovered_in_proband,GT_pool\n')
 
     with open(vcf_file, 'r') as this_vcf:
         vcf_reader = vcf.Reader(this_vcf)
@@ -103,6 +103,10 @@ def main():
 
             nonref_reads_pool = count_nonref_reads(record.samples[pool_pos])
             total_reads_pool = record.samples[pool_pos]['DP']
+
+            nonref_reads_probands = 0
+            for proband_pos in probands_pos:
+                nonref_reads_probands += count_nonref_reads(record.samples[proband_pos])
 
             GT_pool = record.samples[pool_pos]['GT']
             alleles_in_pool = get_nonref_alleles(record.samples[pool_pos]['GT'])
@@ -172,7 +176,7 @@ def main():
 
                 outstream.write(','.join([str(x) for x in [var_id,nonref_alleles_pool,
                     total_alleles_pool,nonref_alleles_probands,total_alleles_probands,
-                    nonref_reads_pool,total_reads_pool,filtered,falsepos,QD,
+                    nonref_reads_pool,total_reads_pool,nonref_reads_probands,filtered,falsepos,QD,
                     AF_EXOMESgnomad, AF_GENOMESgnomad, proband, recovered_proband, GT_pool]]) + '\n')
 
             # If none of the probands have any non-ref alleles at this locus
@@ -180,7 +184,7 @@ def main():
             if report_FPs and nonref_alleles_probands == 0:
                 outstream.write(','.join([str(x) for x in [var_id,nonref_alleles_pool,
                     total_alleles_pool,nonref_alleles_probands,total_alleles_probands,
-                    nonref_reads_pool,total_reads_pool,filtered,falsepos,QD,
+                    nonref_reads_pool,total_reads_pool,nonref_reads_probands,filtered,falsepos,QD,
                     AF_EXOMESgnomad, AF_GENOMESgnomad, 'NA', 'NA', 'NA']]) + '\n')
 
 

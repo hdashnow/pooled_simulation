@@ -1,0 +1,10 @@
+name: pooledparents
+channels:
+- bioconda
+dependencies:
+# Python
+- python=3*
+- PyVCF
+# only required for development
+- pytest
+- coverage

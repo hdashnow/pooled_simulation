@@ -22,8 +22,16 @@ Pooled parent code in development. Not yet ready for external use.
 Python bits:
 
 `git clone git@github.com:hdashnow/pooled_simulation.git`
+
 `cd pooled_simulation`
+
 `- pip install -U .`
+
+or
+
+`conda env create -f environment.yml`
+
+`source activate pooledparents`
 
 Also requires:
 

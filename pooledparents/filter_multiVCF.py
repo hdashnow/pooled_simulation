@@ -62,7 +62,12 @@ def main():
 
     outstream = open(outfile, 'w')
 
-    outstream.write('variant,nonref_alleles_pool,total_alleles_pool,nonref_alleles_probands,total_alleles_probands,nonref_reads_pool,total_reads_pool,nonref_reads_probands,recovered_all,falsepos,QD,AF_EXOMESgnomad,AF_GENOMESgnomad,proband,recovered_in_proband,GT_pool\n')
+    # Write header
+    outstream.write(('variant,nonref_alleles_pool,total_alleles_pool,'
+                    'nonref_alleles_probands,total_alleles_probands,'
+                    'nonref_reads_pool,total_reads_pool,nonref_reads_probands,'
+                    'recovered_all,falsepos,QD,AF_EXOMESgnomad,AF_GENOMESgnomad,'
+                    'proband,recovered_in_proband,GT_pool\n'))
 
     with open(vcf_file, 'r') as this_vcf:
         vcf_reader = vcf.Reader(this_vcf)
@@ -118,7 +123,7 @@ def main():
             # arguments, if given
             if args.filter_reads or args.ploidy_filter:
                 min_read_filter = set_read_filter(total_reads_pool, args.filter_reads,
-                    args.ploidy_filter, tech_variation) 
+                    args.ploidy_filter, tech_variation)
                 alleles_in_pool_by_reads = set(alleles_supported(record, pool_pos,
                     min_read_filter, include_ref = False))
                 if is_recovered(alleles_in_probands, alleles_in_pool_by_reads):
@@ -126,7 +131,7 @@ def main():
                 # likely false positive if found in the pool but not in any of the probands
                 if len(alleles_in_pool_by_reads - alleles_in_probands) > 0:
                     falsepos = 'TRUE'
- 
+
             else:
                 # Filter if all the variants found in the probands are also found in the pool
                 if is_recovered(alleles_in_probands, alleles_in_pool):
@@ -162,7 +167,7 @@ def main():
                 # Write out the variant (GT for this sample only) to the vcf file for that proband
                 # only if the variant is not found in the parent pool
                 recovered_proband = 'FALSE'
-                
+
                 if args.filter_reads or args.ploidy_filter:
                     if is_recovered(alleles_this_proband, alleles_in_pool_by_reads):
                         recovered_proband = 'TRUE'

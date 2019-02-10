@@ -61,27 +61,26 @@ def main():
 
     outstream = open(outfile, 'w')
 
-    # outstream.write(('variant,nonref_alleles_pool,total_alleles_pool,'
-    #                 'nonref_alleles_probands,total_alleles_probands,'
-    #                 'nonref_reads_pool,total_reads_pool,nonref_reads_probands,'
-    #                 'recovered_all,falsepos,QD,AF_EXOMESgnomad,AF_GENOMESgnomad,'
-    #                 'proband,recovered_in_proband,GT_pool\n'))
-
-    header = ('pool,variant,nonref_allele_count_truth,nonref_allele_count_obs,'
-            'recovered,falsepos\n')
-    outstream.write(header)
+    # Write header
+    outstream.write(('pool,proband,variant,recovered_proband,recovered,falsepos,'
+                    'nonref_alleles_pool,total_alleles_pool,'
+                    'nonref_alleles_probands,total_alleles_probands,'
+                    'nonref_reads_pool,total_reads_pool,nonref_reads_probands,'
+                    'QD,GT_pool'
+                    '\n'))
 
     pool_specs = parse_pool_specs(pool_spec_files)
 
     # Parse vcfs of individuals
-    individual_vars = {}
-    pooled_individual_vars = {} # {pool : { variant_id: non-ref count } }
+    #individual_vars = {}
+    # Variants from individual probands, allocated to the pool to which they belong
+    proband_vars_by_pool = {} # {pool : { variant_id: {key:values} } }
     for pool in pool_specs:
-        pooled_individual_vars[pool] = {}
+        proband_vars_by_pool[pool] = {}
 
     for vcf_file in individual_vcf_files:
         sample_id = sample_id_from_fname(vcf_file)
-        individual_vars[sample_id] = set()
+        #individual_vars[sample_id] = set()
 
         pools_sample_is_in = [ pool for pool in pool_specs if sample_id in pool_specs[pool] ]
 
@@ -91,76 +90,116 @@ def main():
             for record in vcf_reader:
 
                 variant = variant_id(record)
-                individual_vars[sample_id].add(variant)
+                #individual_vars[sample_id].add(variant)
 
-                nonref_allele_count, _total_alleles = count_nonref_alleles(record.samples[0]['GT'])
+                nonref_alleles_probands, total_alleles_probands = count_nonref_alleles(record.samples[0]['GT'])
 
                 for pool in pools_sample_is_in:
-                    if variant not in pooled_individual_vars[pool]:
-                        pooled_individual_vars[pool][variant] = nonref_allele_count
-                    else:
-                        pooled_individual_vars[pool][variant] += nonref_allele_count
+                    if variant not in proband_vars_by_pool[pool]:
+                        proband_vars_by_pool[pool][variant] = {
+                                                            'nonref_alleles_probands': 0,
+                                                            'total_alleles_probands': 0,
+                                                            }
+                    proband_vars_by_pool[pool][variant]['nonref_alleles_probands'] += nonref_alleles_probands
+                    proband_vars_by_pool[pool][variant]['total_alleles_probands'] += total_alleles_probands
 
     # Parse vcfs for pools
     pool_vars = {}
-    pool_var_counts = {}
     nonref_allele_counts = {}
+    pool_vars_details = {} # {pool : { variant_id: {key:values} } }
     for pool_vcf_file in pool_vcf_files:
 
         pool = sample_id_from_fname(pool_vcf_file)
         pool_vars[pool] = set()
-        pool_var_counts[pool] = {}
+        pool_vars_details[pool] = {}
 
         with open(pool_vcf_file, 'r') as this_vcf:
             for record in vcf.Reader(this_vcf):
                 variant = variant_id(record)
                 pool_vars[pool].add(variant)
 
-                nonref_allele_count, _total_alleles = count_nonref_alleles(record.samples[0]['GT'])
-                nonref_allele_counts[variant] = nonref_allele_count
+                nonref_alleles_pool, total_alleles_pool = count_nonref_alleles(record.samples[0]['GT'])
+                #nonref_allele_counts[variant] = nonref_allele_pool
 
-                if variant not in pool_var_counts[pool]:
-                    pool_var_counts[pool][variant] = nonref_allele_count
+                if variant not in pool_vars_details[pool]: #XXX not sure about this logic, should variant occur multiple times?
+                    pool_vars_details[pool][variant] = {
+                                                        'nonref_alleles_pool': nonref_alleles_pool,
+                                                        'total_alleles_pool': total_alleles_pool,
+                                                        }
                 else:
-                    pool_var_counts[pool][variant] += nonref_allele_count
+                    raise Exception
+
 
                 if args.falsepos: # if reporting false positives
+
+                    # Assign some placeholder values
+                    proband = None
+                    recovered_proband = None
+                    total_alleles_pool = None
+                    #total_alleles_probands = None
+                    nonref_reads_pool = None
+                    total_reads_pool = None
+                    nonref_reads_probands = None
+                    QD = None
+                    GT_pool = None
+
                     # Check if false positive (and only report those)
-                    if variant not in pooled_individual_vars[pool]:
+                    if variant not in proband_vars_by_pool[pool]:
                         recovered = 'FALSE'
                         falsepos = 'TRUE'
-                        nonref_allele_count_obs = pool_var_counts[pool][variant]
-                        try:
-                            nonref_allele_count_truth = pooled_individual_vars[pool][variant]
-                        except KeyError:
-                            nonref_allele_count_truth = 'NA'
-                        outstream.write('{},{},{},{},{},{}\n'.format(
-                        pool,
-                        variant,
-                        nonref_allele_count_truth,
-                        nonref_allele_count_obs,
-                        recovered,
-                        falsepos))
+                        nonref_alleles_pool = pool_vars_details[pool][variant]
+                        if variant in proband_vars_by_pool[pool]:
+                            nonref_alleles_probands = proband_vars_by_pool[pool][variant]['nonref_alleles_probands']
+                            total_alleles_probands = proband_vars_by_pool[pool][variant]['total_alleles_probands']
 
-    for pool in pooled_individual_vars:
-        for variant in pooled_individual_vars[pool]:
+                        else:
+                            nonref_alleles_probands = 'NA'
+                            total_alleles_probands = 'NA'
+
+                        outstream.write(','.join([str(x) for x in [
+                            pool, proband, variant, recovered, recovered_proband, falsepos,
+                            nonref_alleles_pool, total_alleles_pool,
+                            nonref_alleles_probands, total_alleles_probands,
+                            nonref_reads_pool, total_reads_pool, nonref_reads_probands,
+                            QD,GT_pool
+                            ]]) + '\n')
+
+    for pool in proband_vars_by_pool:
+        for variant in proband_vars_by_pool[pool]:
+
+            # Assign some placeholder values
+            proband = None
+            recovered_proband = None
+            total_alleles_pool = None
+            total_alleles_probands = None
+            nonref_reads_pool = None
+            total_reads_pool = None
+            nonref_reads_probands = None
+            QD = None
+            GT_pool = None
+
             falsepos = 'FALSE'
             if variant in pool_vars[pool]:
                 recovered = "TRUE"
             else:
                 recovered = "FALSE"
-            nonref_allele_count_truth = pooled_individual_vars[pool][variant]
-            try:
-                nonref_allele_count_obs = pool_var_counts[pool][variant]
-            except KeyError:
-                nonref_allele_count_obs = 'NA'
-            outstream.write('{},{},{},{},{},{}\n'.format(
-                pool,
-                variant,
-                nonref_allele_count_truth,
-                nonref_allele_count_obs,
-                recovered,
-                falsepos))
+            nonref_alleles_probands = proband_vars_by_pool[pool][variant]['nonref_alleles_probands']
+            total_alleles_probands = proband_vars_by_pool[pool][variant]['total_alleles_probands']
+
+            if variant in pool_vars_details[pool]:
+                nonref_alleles_pool = pool_vars_details[pool][variant]['nonref_alleles_pool']
+                total_alleles_pool = pool_vars_details[pool][variant]['total_alleles_pool']
+            else:
+                nonref_alleles_pool = 'NA'
+                total_alleles_pool = 'NA'
+
+            outstream.write(','.join([str(x) for x in [
+                pool, proband, variant, recovered, recovered_proband, falsepos,
+                nonref_alleles_pool, total_alleles_pool,
+                nonref_alleles_probands, total_alleles_probands,
+                nonref_reads_pool, total_reads_pool, nonref_reads_probands,
+                QD,GT_pool
+                ]]) + '\n')
 
     outstream.close
 

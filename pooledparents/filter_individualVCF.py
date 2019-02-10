@@ -30,9 +30,6 @@ def parse_args():
     parser.add_argument(
         '--falsepos', action='store_true',
         help='Report false positives as additional lines in the output csv.')
-    parser.add_argument(
-        '--tech_variation', type=float, default=0.5,
-        help='Amount of technical variation to allow when choosing an allele frequency threshold based on ploidy. I.e. if 0.5, allow half as many reads to call a variant in the pool.')
 
     return parser.parse_args()
 
@@ -61,12 +58,18 @@ def main():
     pool_vcf_files = args.pool_vcfs
     pool_spec_files = args.pool_specs
     outfile = args.out_csv
-    report_FPs = args.falsepos
-    tech_variation = args.tech_variation
 
     outstream = open(outfile, 'w')
 
-    outstream.write('variant,nonref_alleles_pool,total_alleles_pool,nonref_alleles_probands,total_alleles_probands,nonref_reads_pool,total_reads_pool,recovered_all,falsepos,QD,AF_EXOMESgnomad,AF_GENOMESgnomad,proband,recovered_in_proband,GT_pool\n')
+    # outstream.write(('variant,nonref_alleles_pool,total_alleles_pool,'
+    #                 'nonref_alleles_probands,total_alleles_probands,'
+    #                 'nonref_reads_pool,total_reads_pool,nonref_reads_probands,'
+    #                 'recovered_all,falsepos,QD,AF_EXOMESgnomad,AF_GENOMESgnomad,'
+    #                 'proband,recovered_in_proband,GT_pool\n'))
+
+    header = ('pool,variant,nonref_allele_count_truth,nonref_allele_count_obs,'
+            'recovered,falsepos\n')
+    outstream.write(header)
 
     pool_specs = parse_pool_specs(pool_spec_files)
 
@@ -81,22 +84,22 @@ def main():
         individual_vars[sample_id] = set()
 
         pools_sample_is_in = [ pool for pool in pool_specs if sample_id in pool_specs[pool] ]
-        
+
         with open(vcf_file, 'r') as this_vcf:
             vcf_reader = vcf.Reader(this_vcf)
             vcf_writer = vcf.Writer(open(sample_id+".filtered.vcf", 'w'), vcf_reader)
             for record in vcf_reader:
 
-                var_id = variant_id(record)
-                individual_vars[sample_id].add(var_id)
+                variant = variant_id(record)
+                individual_vars[sample_id].add(variant)
 
                 nonref_allele_count, _total_alleles = count_nonref_alleles(record.samples[0]['GT'])
 
                 for pool in pools_sample_is_in:
-                    if var_id not in pooled_individual_vars[pool]:
-                        pooled_individual_vars[pool][var_id] = nonref_allele_count
+                    if variant not in pooled_individual_vars[pool]:
+                        pooled_individual_vars[pool][variant] = nonref_allele_count
                     else:
-                        pooled_individual_vars[pool][var_id] += nonref_allele_count
+                        pooled_individual_vars[pool][variant] += nonref_allele_count
 
     # Parse vcfs for pools
     pool_vars = {}
@@ -110,61 +113,56 @@ def main():
 
         with open(pool_vcf_file, 'r') as this_vcf:
             for record in vcf.Reader(this_vcf):
-                var_id = variant_id(record)
-                pool_vars[pool].add(var_id)
+                variant = variant_id(record)
+                pool_vars[pool].add(variant)
 
                 nonref_allele_count, _total_alleles = count_nonref_alleles(record.samples[0]['GT'])
-                nonref_allele_counts[var_id] = nonref_allele_count
-   
-                if var_id not in pool_var_counts[pool]:
-                    pool_var_counts[pool][var_id] = nonref_allele_count
+                nonref_allele_counts[variant] = nonref_allele_count
+
+                if variant not in pool_var_counts[pool]:
+                    pool_var_counts[pool][variant] = nonref_allele_count
                 else:
-                    pool_var_counts[pool][var_id] += nonref_allele_count
+                    pool_var_counts[pool][variant] += nonref_allele_count
 
+                if args.falsepos: # if reporting false positives
+                    # Check if false positive (and only report those)
+                    if variant not in pooled_individual_vars[pool]:
+                        recovered = 'FALSE'
+                        falsepos = 'TRUE'
+                        nonref_allele_count_obs = pool_var_counts[pool][variant]
+                        try:
+                            nonref_allele_count_truth = pooled_individual_vars[pool][variant]
+                        except KeyError:
+                            nonref_allele_count_truth = 'NA'
+                        outstream.write('{},{},{},{},{},{}\n'.format(
+                        pool,
+                        variant,
+                        nonref_allele_count_truth,
+                        nonref_allele_count_obs,
+                        recovered,
+                        falsepos))
 
-    header = 'pool,variant,nonref_allele_count_truth,nonref_allele_count_obs,recovered\n'
-    outstream.write(header)
     for pool in pooled_individual_vars:
         for variant in pooled_individual_vars[pool]:
+            falsepos = 'FALSE'
             if variant in pool_vars[pool]:
                 recovered = "TRUE"
             else:
                 recovered = "FALSE"
             nonref_allele_count_truth = pooled_individual_vars[pool][variant]
             try:
-                nonref_allele_count_obs = pool_var_counts[pool][variant] 
+                nonref_allele_count_obs = pool_var_counts[pool][variant]
             except KeyError:
                 nonref_allele_count_obs = 'NA'
-            outstream.write('{},{},{},{},{}\n'.format(pool,
+            outstream.write('{},{},{},{},{},{}\n'.format(
+                pool,
                 variant,
                 nonref_allele_count_truth,
                 nonref_allele_count_obs,
-                recovered))
-        
-    outstream.close()
+                recovered,
+                falsepos))
 
-    if args.falsepos:
-        falsepos_file = 'falsepos_test.csv'
-        outstream = open(falsepos_file, "w")
-        header = 'pool,variant,nonref_allele_count_truth,nonref_allele_count_obs,false_positive\n'
-        outstream.write(header)
-        for pool in pooled_individual_vars:
-            for variant in pool_vars[pool]:
-                if variant in pooled_individual_vars[pool]:
-                    falsepos = "FALSE"
-                else:
-                    falsepos = "TRUE"
-                nonref_allele_count_obs = pool_var_counts[pool][variant] 
-                try:
-                    nonref_allele_count_truth = pooled_individual_vars[pool][variant]
-                except KeyError:
-                    nonref_allele_count_truth = 'NA'
-                outstream.write('{},{},{},{},{}\n'.format(pool,
-                    variant,
-                    nonref_allele_count_truth,
-                    nonref_allele_count_obs,
-                    falsepos))
-        outstream.close
+    outstream.close
 
 if __name__ == '__main__':
     main()

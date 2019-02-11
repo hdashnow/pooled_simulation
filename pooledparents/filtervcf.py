@@ -47,7 +47,7 @@ def count_nonref_reads(record_sample):
     """Count the number of reads supporting all non-reference alleles"""
     allelic_depths = record_sample['AD']
     try:
-        nonref_reads = allelic_depths[1:]
+        nonref_reads = sum(allelic_depths[1:])
     except TypeError: # Occurs when AD is a single value, not a list
         nonref_reads = 0
     return(nonref_reads)

@@ -89,7 +89,7 @@ def set_read_filter(total_reads_pool, filter_reads = None, ploidy = None,
         ploidy (int): perform variant frequency filter based on this ploidy
         tech_variation (float): 0 > tech_variation >= 1, ploidy filter will be multiplied
             by this values
-        combine_filters (str): 'strict': take the maximum if two filters are used, 
+        combine_filters (str): 'strict': take the maximum if two filters are used,
             'lenient': take the minimum if two filters are used
     Returns:
         int
@@ -148,3 +148,13 @@ def extract_record_info(record, field):
         return info
     except KeyError:
         return 'NA'
+
+def which_recovered(recovered_names, all_names):
+    """Produce dictionary of recovered TRUE/FALSE"""
+    recovery_dict = {}
+    for name in all_names:
+        if name in recovered_names:
+            recovery_dict[name] = 'TRUE'
+        else:
+            recovery_dict[name] = 'FALSE'
+    return(recovery_dict)

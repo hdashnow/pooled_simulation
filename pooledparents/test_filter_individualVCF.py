@@ -12,7 +12,7 @@ def test_parse_pool_specs(tmpdir):
     filename2 = tmpdir + '/4.txt'
     contents2 = '[/my/dir/sample1.bam, /my/dir/sample2.bam, /my/dir/sample3.bam, /my/dir/sample4.bam]'
     spec_files = [filename1, filename2]
-    
+
     with open(filename1, 'w') as f1, open(filename2, 'w') as f2:
         f1.write(contents1)
         f2.write(contents2)

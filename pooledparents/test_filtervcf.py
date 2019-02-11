@@ -155,3 +155,10 @@ def test_extract_record_info(position, field, expected):
         for record in vcf_reader:
             if record.POS == position:
                 assert extract_record_info(record, field) == expected
+
+@pytest.mark.parametrize("recovered_names, all_names, expected", [
+    (['A'], ['A', 'B'], {'A': 'TRUE', 'B': 'FALSE'}),
+    ([], ['A', 'B'], {'A': 'FALSE', 'B': 'FALSE'}),
+])
+def test_which_recovered(recovered_names, all_names, expected):
+    assert which_recovered(recovered_names, all_names) == expected

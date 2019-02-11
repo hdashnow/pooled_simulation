@@ -46,7 +46,11 @@ def get_nonref_alleles(GT_string):
 def count_nonref_reads(record_sample):
     """Count the number of reads supporting all non-reference alleles"""
     allelic_depths = record_sample['AD']
-    return(sum(allelic_depths[1:]))
+    try:
+        nonref_reads = allelic_depths[1:]
+    except TypeError: # Occurs when AD is a single value, not a list
+        nonref_reads = 0
+    return(nonref_reads)
 
 def alleles_supported(record, sample_pos, n, include_ref = True):
     """Return alleles supported by at least n reads

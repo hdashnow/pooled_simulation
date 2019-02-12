@@ -126,8 +126,10 @@ def main():
                 nonref_reads_pool = count_nonref_reads(record.samples[0])
                 total_reads_pool = record.samples[0]['DP']
                 qual = record.QUAL
-                QD_pool = qual/record.INFO['DP']
-
+                try:
+                    QD_pool = qual/record.INFO['DP']
+                except KeyError:
+                    QD_pool = 'NA'
 
                 if variant not in pool_vars_details[pool]:
                     pool_vars_details[pool][variant] = {

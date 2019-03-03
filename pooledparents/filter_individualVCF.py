@@ -66,7 +66,7 @@ def main():
                     'nonref_alleles_pool,total_alleles_pool,'
                     'nonref_alleles_probands,total_alleles_probands,'
                     'nonref_reads_pool,total_reads_pool,nonref_reads_probands,'
-                    'QD_pool,GT_pool'
+                    'QD_pool,GT_pool,QD_proband,AF_EXOMESgnomad'
                     '\n'))
 
     pool_specs = parse_pool_specs(pool_spec_files)
@@ -93,6 +93,10 @@ def main():
                 nonref_alleles_this_proband, total_alleles_this_proband = count_nonref_alleles(record.samples[0]['GT'])
                 nonref_reads_this_proband = count_nonref_reads(record.samples[0])
 
+                AF_EXOMESgnomad = extract_record_info(record, 'AF_EXOMESgnomad')
+                qual = record.QUAL
+                QD = qual/record.INFO['DP']
+
                 for pool in pools_sample_is_in:
                     if variant not in proband_vars_by_pool[pool]:
                         proband_vars_by_pool[pool][variant] = {
@@ -105,6 +109,8 @@ def main():
                     proband_vars_by_pool[pool][variant]['total_alleles_probands'] += total_alleles_this_proband
                     proband_vars_by_pool[pool][variant]['nonref_reads_probands'] += nonref_reads_this_proband
                     proband_vars_by_pool[pool][variant]['probands_with_variant'].add(proband_id)
+                    proband_vars_by_pool[pool][variant]['AF_EXOMESgnomad'] = AF_EXOMESgnomad
+                    proband_vars_by_pool[pool][variant]['QD_proband'] = QD
 
     # Parse vcfs for pools
     pool_vars = {}
@@ -152,6 +158,8 @@ def main():
                         # Assign some NA values
                         proband = 'NA'
                         recovered_proband = 'NA'
+                        QD_proband = 'NA'
+                        AF_EXOMESgnomad = 'NA'
 
                         nonref_alleles_pool = pool_vars_details[pool][variant]['nonref_alleles_pool']
                         nonref_reads_pool = pool_vars_details[pool][variant]['nonref_reads_pool']
@@ -173,7 +181,7 @@ def main():
                             nonref_alleles_pool, total_alleles_pool,
                             nonref_alleles_probands, total_alleles_probands,
                             nonref_reads_pool, total_reads_pool, nonref_reads_probands,
-                            QD_pool,GT_pool
+                            QD_pool,GT_pool,QD_proband,AF_EXOMESgnomad
                             ]]) + '\n')
 
     for pool in proband_vars_by_pool:
@@ -204,6 +212,8 @@ def main():
             nonref_alleles_probands = proband_vars_by_pool[pool][variant]['nonref_alleles_probands']
             total_alleles_probands = proband_vars_by_pool[pool][variant]['total_alleles_probands']
             nonref_reads_probands = proband_vars_by_pool[pool][variant]['nonref_reads_probands']
+            QD_proband = proband_vars_by_pool[pool][variant]['QD_proband']
+            AF_EXOMESgnomad = proband_vars_by_pool[pool][variant]['AF_EXOMESgnomad']
 
             for proband in recovery_by_proband:
                 recovered_proband = recovery_by_proband[proband]
@@ -213,7 +223,7 @@ def main():
                     nonref_alleles_pool, total_alleles_pool,
                     nonref_alleles_probands, total_alleles_probands,
                     nonref_reads_pool, total_reads_pool, nonref_reads_probands,
-                    QD_pool,GT_pool
+                    QD_pool,GT_pool,QD_proband,AF_EXOMESgnomad
                     ]]) + '\n')
 
     outstream.close

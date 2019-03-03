@@ -84,7 +84,8 @@ def main():
 
         with open(vcf_file, 'r') as this_vcf:
             vcf_reader = vcf.Reader(this_vcf)
-            vcf_writer = vcf.Writer(open(proband_id+".filtered.vcf", 'w'), vcf_reader)
+            #vcf_writer = vcf.Writer(open(proband_id+".filtered.vcf", 'w'), vcf_reader)
+            #XXX add functionality to output filtered vcfs
             for record in vcf_reader:
 
                 variant = variant_id(record)
@@ -198,7 +199,7 @@ def main():
                 GT_pool = 'NA'
                 QD_pool = 'NA'
                 # report recovered_proband FALSE for each proband
-                recovery_by_proband = which_recovered([],pool_specs[pool])
+                recovery_by_proband = which_recovered([],proband_vars_by_pool[pool][variant]['probands_with_variant'])
 
             nonref_alleles_probands = proband_vars_by_pool[pool][variant]['nonref_alleles_probands']
             total_alleles_probands = proband_vars_by_pool[pool][variant]['total_alleles_probands']

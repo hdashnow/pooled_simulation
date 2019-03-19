@@ -15,17 +15,11 @@ run {
             align_bwa + index_bam
         ] + merge_lanes +
         dedup +
-        coverage +
+        //coverage +
         call_variants +
         annotate_vcf + 
-        intersect_vcf
-//        compress_vcf + index_vcf
+        annotate_vep +
+        intersect_vcf +
+        annotate_vep
     ]
 }
-//    ~"(.*)_R[0-9][_.].*fastq.gz" * [ 
-//        set_fastq_info + align + index_bam 
-//    ] +
-//    ~"(.*)_AGRF_.*bam" * [ 
-//        set_sample_info + merge_bams +
-//         //+ index_bam +
-

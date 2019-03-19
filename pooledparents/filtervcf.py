@@ -73,7 +73,7 @@ def alleles_supported(record, sample_pos, n, include_ref = True):
     return(supported_alleles)
 
 def is_recovered(alleles_in_probands, alleles_in_pool):
-    """Filter if all the variants found in the proband(s) are also found in the pool.
+    """True if all the variants found in the proband(s) are also found in the pool.
     This tends to result in multi-alleleic sites not getting filtered in many cases.
 
     alleles_in_probands, alleles_in_pool: iterable consisting of items that can be compared in a set

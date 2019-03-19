@@ -17,6 +17,5 @@ run {
         call_variants + 
         annotate_vcf +
         intersect_vcf
-//        compress_vcf + index_vcf
     ]
 }

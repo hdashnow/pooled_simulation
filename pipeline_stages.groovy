@@ -360,6 +360,24 @@ annotate_vcf = {
     """
 }
 
+annotate_vep = {
+
+    output.dir="variants"
+
+    transform("vcf") to("vep.tsv") {
+        exec """
+            vep --offline --tab
+                --fork $threads
+                --dir $VEPCACHEDIR --synonyms $VEP_SYN
+                --species homo_sapiens --assembly GRCh37
+                --pick --pick_order rank,canonical,appris,tsl,biotype,ccds,length
+                --sift b --polyphen b --symbol --regulatory --biotype --gene_phenotype --af_gnomad --variant_class
+                --input_file  $input.vcf
+                --output_file $output.tsv
+        """,'vep'
+    }
+}
+
 @filter('intersect')
 intersect_vcf = {
     doc "Filter vcfs to the intersection of the target regions of the two exome captures used"
@@ -379,6 +397,24 @@ compare_sim = {
             /group/bioi1/harrietd/git/STRetch/tools/bin/python
                 /group/bioi1/harrietd/git/pooled_simulation/pooledparents/filter_individualVCF.py
                 --individual_vcfs /group/bioi1/harrietd/pooled-parent/pooled_simulation2/simplex/individuals/variants/SRR???????.vcf
+                --pool_vcfs $inputs.vcf
+                --pool_specs $inputs.txt
+                --out_csv $output.csv
+                --falsepos
+    """
+    }
+}
+
+compare_sim_probands = {
+
+    output.dir="variants"
+
+    from('*.vcf') produce('pooled_sim_compare.csv') {
+
+        exec """
+            /group/bioi1/harrietd/git/STRetch/tools/bin/python
+                /group/bioi1/harrietd/git/pooled_simulation/pooledparents/filter_individualVCF.py
+                --individual_vcfs /group/bioi1/harrietd/pooled-parent/proband_genotyping/variants/*.vcf
                 --pool_vcfs $inputs.vcf
                 --pool_specs $inputs.txt
                 --out_csv $output.csv

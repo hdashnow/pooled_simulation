@@ -18,8 +18,8 @@ run {
         //coverage +
         call_variants +
         annotate_vcf + 
-        annotate_vep +
+        annotate_vep_table + annotate_vep_vcf +
         intersect_vcf +
-        annotate_vep
+        annotate_vep_table
     ]
 }

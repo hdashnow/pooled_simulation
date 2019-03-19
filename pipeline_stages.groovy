@@ -360,7 +360,7 @@ annotate_vcf = {
     """
 }
 
-annotate_vep = {
+annotate_vep_table = {
 
     output.dir="variants"
 
@@ -374,6 +374,24 @@ annotate_vep = {
                 --sift b --polyphen b --symbol --regulatory --biotype --gene_phenotype --af_gnomad --variant_class
                 --input_file  $input.vcf
                 --output_file $output.tsv
+        """,'vep'
+    }
+}
+
+annotate_vep_vcf = {
+
+    output.dir="variants"
+
+    transform("vcf") to("vep.vcf") {
+        exec """
+            vep --offline --vcf
+                --fork $threads
+                --dir $VEPCACHEDIR --synonyms $VEP_SYN
+                --species homo_sapiens --assembly GRCh37
+                --pick --pick_order rank,canonical,appris,tsl,biotype,ccds,length
+                --sift b --polyphen b --symbol --regulatory --biotype --gene_phenotype --af_gnomad --variant_class
+                --input_file  $input.vcf
+                --output_file $output.vcf
         """,'vep'
     }
 }
